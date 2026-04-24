@@ -8,3 +8,15 @@ export const supabase = createClient(supabaseUrl, supabaseKey,{
         persistSession: false
     }
 });
+
+export const createSupabaseUserClient = (accessToken: string) =>
+  createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      persistSession: false,
+    },
+    global: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  });

@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { createSupabaseUserClient, supabase } from '../lib/supabase';
 
 export type DatabaseUser = Record<string, unknown>;
 export type TodoInput = {
@@ -9,8 +9,13 @@ export type TodoInput = {
   due_date?: string;
 };
 
-export const getUserDataByAuthId = async (authId: string): Promise<DatabaseUser | null> => {
-  const { data, error } = await supabase
+export const getUserDataByAuthId = async (
+  authId: string,
+  accessToken?: string,
+): Promise<DatabaseUser | null> => {
+  const client = accessToken ? createSupabaseUserClient(accessToken) : supabase;
+
+  const { data, error } = await client
     .from('users')
     .select('*')
     .eq('auth_id', authId)
@@ -23,8 +28,8 @@ export const getUserDataByAuthId = async (authId: string): Promise<DatabaseUser 
   return data;
 };
 
-export const getTodosByUserId = async (authId: string) => {
-  const { data, error } = await supabase
+export const getTodosByUserId = async (authId: string, accessToken: string) => {
+  const { data, error } = await createSupabaseUserClient(accessToken)
     .from('todos')
     .select('*')
     .eq('user_id', authId)
@@ -39,9 +44,14 @@ export const getTodosByUserId = async (authId: string) => {
 
 export const createTodo = async (
   authId: string,
+  accessToken: string,
   todoInput: TodoInput,
 ) => {
-  const { data, error } = await supabase
+  if (!todoInput.title) {
+    throw new Error('Title is required');
+  }
+
+  const { data, error } = await createSupabaseUserClient(accessToken)
     .from('todos')
     .insert({
       user_id: authId,
@@ -63,10 +73,11 @@ export const createTodo = async (
 
 export const updateTodo = async (
   authId: string,
+  accessToken: string,
   todoId: string,
   todoInput: TodoInput,
 ) => {
-  const { data, error } = await supabase
+  const { data, error } = await createSupabaseUserClient(accessToken)
     .from('todos')
     .update(todoInput)
     .eq('id', todoId)
@@ -81,8 +92,12 @@ export const updateTodo = async (
   return data;
 };
 
-export const deleteTodo = async (authId: string, todoId: string) => {
-  const { error } = await supabase
+export const deleteTodo = async (
+  authId: string,
+  accessToken: string,
+  todoId: string,
+) => {
+  const { error } = await createSupabaseUserClient(accessToken)
     .from('todos')
     .delete()
     .eq('id', todoId)

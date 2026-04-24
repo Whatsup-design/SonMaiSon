@@ -36,7 +36,7 @@ export const authMiddleware = async (
     }
 
     const tokenPayload = jwt.decode(token) as JwtPayload | string | null;
-    const databaseUser = await getUserDataByAuthId(data.user.id);
+    const databaseUser = await getUserDataByAuthId(data.user.id, token);
 
     req.accessToken = token;
     req.authUser = data.user;
