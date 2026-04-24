@@ -1,4 +1,5 @@
 import { createSupabaseUserClient, supabase } from '../lib/supabase';
+import { randomUUID } from 'crypto';
 
 export type DatabaseUser = Record<string, unknown>;
 export type TodoInput = {
@@ -54,12 +55,14 @@ export const createTodo = async (
   const { data, error } = await createSupabaseUserClient(accessToken)
     .from('todos')
     .insert({
+      id: randomUUID(),
       user_id: authId,
       title: todoInput.title,
-      description: todoInput.description,
+      description: todoInput.description ?? null,
       is_completed: todoInput.is_completed ?? false,
-      priority: todoInput.priority,
-      due_date: todoInput.due_date,
+      priority: todoInput.priority ?? null,
+      due_date: todoInput.due_date ?? null,
+      created_at: new Date().toISOString(),
     })
     .select('*')
     .single();
@@ -77,9 +80,13 @@ export const updateTodo = async (
   todoId: string,
   todoInput: TodoInput,
 ) => {
+  const updateInput = Object.fromEntries(
+    Object.entries(todoInput).filter(([, value]) => value !== undefined),
+  );
+
   const { data, error } = await createSupabaseUserClient(accessToken)
     .from('todos')
-    .update(todoInput)
+    .update(updateInput)
     .eq('id', todoId)
     .eq('user_id', authId)
     .select('*')
