@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { createSupabaseUserClient } from '../lib/supabase';
 import { env } from '../config/env';
 
 type AuthPayload = {
@@ -96,12 +97,10 @@ export const getOAuthUrl = async (provider: string) => {
 
 export const logoutUser = async (accessToken?: string) => {
   if (!accessToken) {
-    return {
-      message: 'Logout successful',
-    };
+    throw new Error('Access token is required');
   }
 
-  const { error } = await supabase.auth.admin.signOut(accessToken);
+  const { error } = await createSupabaseUserClient(accessToken).auth.signOut();
 
   if (error) {
     throw new Error(error.message);

@@ -1,7 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { supabase } from '../lib/supabase';
-import { getUserDataByAuthId } from '../services/userService';
 
 const getBearerToken = (authorization?: string) => {
   if (!authorization?.startsWith('Bearer ')) {
@@ -36,12 +35,10 @@ export const authMiddleware = async (
     }
 
     const tokenPayload = jwt.decode(token) as JwtPayload | string | null;
-    const databaseUser = await getUserDataByAuthId(data.user.id, token);
 
     req.accessToken = token;
     req.authUser = data.user;
     req.tokenPayload = tokenPayload;
-    req.databaseUser = databaseUser;
 
     next();
   } catch (error) {

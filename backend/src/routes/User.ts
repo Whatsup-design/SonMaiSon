@@ -1,22 +1,15 @@
 import express from 'express';
-import {
-  createTodoController,
-  dashboardController,
-  deleteTodoController,
-  getTodosController,
-  updateTodoController,
-} from '../controllers/userController';
 
 const router = express.Router();
 
-router.get('/dashboard', dashboardController);
-router.get('/todos', getTodosController);
-router.post('/todos', createTodoController);
-router.patch('/todos/:id', updateTodoController);
-router.delete('/todos/:id', deleteTodoController);
+// Mock project pause:
+// User/todo routes are intentionally disabled for now.
+// Restore controller imports and route handlers when CRUD is needed again.
 
-// router.get('/Market', MarketController);
-
-// router.get('/Ledaerboard', LeaderboardController);
+// router.get('/dashboard', dashboardController);
+// router.get('/todos', getTodosController);
+// router.post('/todos', createTodoController);
+// router.patch('/todos/:id', updateTodoController);
+// router.delete('/todos/:id', deleteTodoController);
 
 export default router;

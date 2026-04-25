@@ -2,9 +2,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
 import { env } from './config/env';
-import { authMiddleware } from './middleware/authMiddleware';
 import { router } from './routes';
-import userRoutes from './routes/User';
 import authRoutes from './routes/auth';
 
 dotenv.config();
@@ -25,9 +23,10 @@ app.use(express.json());
 app.use('/', router);
 
 app.use('/auth', authRoutes);
-app.use('/user', authMiddleware, userRoutes);
+// app.use('/user', authMiddleware, userRoutes);
 
 app.listen(env.port, () => {
   console.log(`Server is running on http://localhost:${port}`);
-  console.log(`Dashboard: http://localhost:${port}/user/dashboard`);
+  // Mock project: user routes are paused for now.
+  // console.log(`Dashboard: http://localhost:${port}/user/dashboard`);
 });
