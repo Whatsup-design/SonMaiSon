@@ -1,6 +1,9 @@
 import { NextFunction, Request, Response } from 'express';
 import jwt, { JwtPayload } from 'jsonwebtoken';
+import { ErrorCode } from '../constants/errorCodes';
+import { HttpStatus } from '../constants/httpStatus';
 import { supabase } from '../lib/supabase';
+import { AppError } from '../utils/AppError';
 
 const getBearerToken = (authorization?: string) => {
   if (!authorization?.startsWith('Bearer ')) {
@@ -19,18 +22,26 @@ export const authMiddleware = async (
     const token = getBearerToken(req.headers.authorization);
 
     if (!token) {
-      res.status(401).json({
-        message: 'Access token is required',
-      });
+      next(
+        new AppError({
+          statusCode: HttpStatus.UNAUTHORIZED,
+          code: ErrorCode.AUTH_TOKEN_REQUIRED,
+          message: 'Access token is required',
+        }),
+      );
       return;
     }
 
     const { data, error } = await supabase.auth.getUser(token);
 
     if (error || !data.user) {
-      res.status(401).json({
-        message: 'Invalid or expired token',
-      });
+      next(
+        new AppError({
+          statusCode: HttpStatus.UNAUTHORIZED,
+          code: ErrorCode.AUTH_TOKEN_INVALID,
+          message: 'Invalid or expired token',
+        }),
+      );
       return;
     }
 
@@ -42,8 +53,6 @@ export const authMiddleware = async (
 
     next();
   } catch (error) {
-    res.status(500).json({
-      message: error instanceof Error ? error.message : 'Authentication failed',
-    });
+    next(error);
   }
 };

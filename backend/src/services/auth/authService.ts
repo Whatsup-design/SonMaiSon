@@ -1,6 +1,8 @@
-import { supabase } from '../lib/supabase';
-import { createSupabaseUserClient } from '../lib/supabase';
-import { env } from '../config/env';
+import { env } from '../../config/env';
+import { ErrorCode } from '../../constants/errorCodes';
+import { HttpStatus } from '../../constants/httpStatus';
+import { createSupabaseUserClient, supabase } from '../../lib/supabase';
+import { AppError } from '../../utils/AppError';
 
 type AuthPayload = {
   email: string;
@@ -25,7 +27,11 @@ type SupabaseAuthData = {
 
 const validateAuthPayload = ({ email, password }: AuthPayload) => {
   if (!email || !password) {
-    throw new Error('Email and password are required');
+    throw new AppError({
+      statusCode: HttpStatus.BAD_REQUEST,
+      code: ErrorCode.VALIDATION_ERROR,
+      message: 'Email and password are required',
+    });
   }
 };
 
@@ -56,7 +62,12 @@ export const signupUser = async ({ email, password, username }: AuthPayload) => 
   });
 
   if (error) {
-    throw new Error(error.message);
+    throw new AppError({
+      statusCode: HttpStatus.BAD_REQUEST,
+      code: ErrorCode.AUTH_SIGNUP_FAILED,
+      message: error.message,
+      details: error,
+    });
   }
 
   return formatAuthResponse(data);
@@ -71,7 +82,12 @@ export const loginUser = async ({ email, password }: AuthPayload) => {
   });
 
   if (error) {
-    throw new Error(error.message);
+    throw new AppError({
+      statusCode: HttpStatus.UNAUTHORIZED,
+      code: ErrorCode.AUTH_INVALID_CREDENTIALS,
+      message: error.message,
+      details: error,
+    });
   }
 
   return formatAuthResponse(data);
@@ -86,7 +102,12 @@ export const getOAuthUrl = async (provider: string) => {
   });
 
   if (error) {
-    throw new Error(error.message);
+    throw new AppError({
+      statusCode: HttpStatus.BAD_REQUEST,
+      code: ErrorCode.AUTH_OAUTH_FAILED,
+      message: error.message,
+      details: error,
+    });
   }
 
   return {
@@ -97,13 +118,22 @@ export const getOAuthUrl = async (provider: string) => {
 
 export const logoutUser = async (accessToken?: string) => {
   if (!accessToken) {
-    throw new Error('Access token is required');
+    throw new AppError({
+      statusCode: HttpStatus.UNAUTHORIZED,
+      code: ErrorCode.AUTH_TOKEN_REQUIRED,
+      message: 'Access token is required',
+    });
   }
 
   const { error } = await createSupabaseUserClient(accessToken).auth.signOut();
 
   if (error) {
-    throw new Error(error.message);
+    throw new AppError({
+      statusCode: HttpStatus.BAD_REQUEST,
+      code: ErrorCode.AUTH_LOGOUT_FAILED,
+      message: error.message,
+      details: error,
+    });
   }
 
   return {

@@ -2,6 +2,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
 import { env } from './config/env';
+import { errorHandler } from './middleware/errorHandler';
+import { notFoundHandler } from './middleware/notFoundHandler';
 import { router } from './routes';
 import authRoutes from './routes/auth';
 
@@ -24,6 +26,9 @@ app.use('/', router);
 
 app.use('/auth', authRoutes);
 // app.use('/user', authMiddleware, userRoutes);
+
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 app.listen(env.port, () => {
   console.log(`Server is running on http://localhost:${port}`);

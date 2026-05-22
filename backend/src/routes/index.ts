@@ -1,10 +1,11 @@
 import { Router } from 'express';
+import { sendSuccess } from '../utils/apiResponse';
 import { healthRouter } from './health.routes';
 
 export const router = Router();
 
 router.get('/', (_req, res) => {
-  res.status(200).json({
+  sendSuccess(res, {
     message: 'Backend API is running',
   });
 });

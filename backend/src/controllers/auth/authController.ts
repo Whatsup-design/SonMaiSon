@@ -1,66 +1,48 @@
 import { Request, Response } from 'express';
+import { HttpStatus } from '../../constants/httpStatus';
 import {
   getOAuthUrl,
   loginUser,
   logoutUser,
   signupUser,
-} from '../services/authService';
+} from '../../services/auth/authService';
+import { sendSuccess } from '../../utils/apiResponse';
 
 export const signupController = async (req: Request, res: Response) => {
-  try {
-    const data = await signupUser(req.body);
+  const data = await signupUser(req.body);
 
-    res.status(201).json({
-      message: 'Signup successful',
-      data,
-    });
-  } catch (error) {
-    res.status(400).json({
-      message: error instanceof Error ? error.message : 'Signup failed',
-    });
-  }
+  sendSuccess(res, {
+    statusCode: HttpStatus.CREATED,
+    message: 'Signup successful',
+    data,
+  });
 };
 
 export const loginController = async (req: Request, res: Response) => {
-  try {
-    const data = await loginUser(req.body);
+  const data = await loginUser(req.body);
 
-    res.status(200).json({
-      message: 'Login successful',
-      data,
-    });
-  } catch (error) {
-    res.status(401).json({
-      message: error instanceof Error ? error.message : 'Login failed',
-    });
-  }
+  sendSuccess(res, {
+    message: 'Login successful',
+    data,
+  });
 };
 
 export const logoutController = async (req: Request, res: Response) => {
-  try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    const data = await logoutUser(token);
+  const token = req.headers.authorization?.replace('Bearer ', '');
 
-    res.status(200).json(data);
-  } catch (error) {
-    res.status(400).json({
-      message: error instanceof Error ? error.message : 'Logout failed',
-    });
-  }
+  await logoutUser(token);
+
+  sendSuccess(res, {
+    message: 'Logout successful',
+  });
 };
 
 export const oauthController = async (req: Request, res: Response) => {
-  try {
-    const provider = String(req.params.provider);
-    const data = await getOAuthUrl(provider);
+  const provider = String(req.params.provider);
+  const data = await getOAuthUrl(provider);
 
-    res.status(200).json({
-      message: 'OAuth URL created',
-      data,
-    });
-  } catch (error) {
-    res.status(400).json({
-      message: error instanceof Error ? error.message : 'OAuth failed',
-    });
-  }
+  sendSuccess(res, {
+    message: 'OAuth URL created',
+    data,
+  });
 };
