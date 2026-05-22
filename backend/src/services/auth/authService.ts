@@ -25,6 +25,10 @@ type SupabaseAuthData = {
   } | null;
 };
 
+const isGoogleProvider = (provider: string): provider is 'google' => {
+  return provider === 'google';
+};
+
 const validateAuthPayload = ({ email, password }: AuthPayload) => {
   if (!email || !password) {
     throw new AppError({
@@ -94,8 +98,20 @@ export const loginUser = async ({ email, password }: AuthPayload) => {
 };
 
 export const getOAuthUrl = async (provider: string) => {
+  if (!isGoogleProvider(provider)) {
+    throw new AppError({
+      statusCode: HttpStatus.BAD_REQUEST,
+      code: ErrorCode.AUTH_OAUTH_PROVIDER_UNSUPPORTED,
+      message: 'OAuth provider is not supported',
+      details: {
+        provider,
+        supportedProviders: ['google'],
+      },
+    });
+  }
+
   const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: provider as 'google' | 'github' | 'facebook' | 'discord',
+    provider,
     options: {
       redirectTo: `${env.clientUrl}/auth/callback`,
     },

@@ -12,8 +12,20 @@ const parsePort = (value: string | undefined): number => {
   return port;
 };
 
+const requiredEnv = (key: string): string => {
+  const value = process.env[key];
+
+  if (!value) {
+    throw new Error(`${key} is required`);
+  }
+
+  return value;
+};
+
 export const env = {
   port: parsePort(process.env.PORT),
   nodeEnv: process.env.NODE_ENV ?? 'development',
   clientUrl: process.env.CLIENT_URL ?? 'http://localhost:5173',
+  supabaseUrl: requiredEnv('SUPABASE_URL'),
+  supabaseAnonKey: requiredEnv('SUPABASE_ANON_KEY'),
 };

@@ -13,7 +13,7 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
       statusCode: err.statusCode,
       message: err.message,
       code: err.code,
-      details: err.details,
+      details: env.nodeEnv === 'development' ? err.details : null,
     });
     return;
   }
