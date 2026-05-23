@@ -4,7 +4,7 @@ import { sendSuccess } from '../utils/apiResponse';
 
 export const healthRouter = Router();
 
-healthRouter.get('/', (_req, res) => {
+healthRouter.get('/health', (_req, res) => {
   sendSuccess(res, {
     message: 'Health check successful',
     data: {

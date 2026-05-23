@@ -7,10 +7,21 @@ const emailPasswordSchema = z
   })
   .strict();
 
-export const signupSchema = z.object({
-  body: emailPasswordSchema.extend({
+const signupBodySchema = z
+  .object({
+    email: z.string().trim().email(),
+    password: z.string().min(6),
     username: z.string().trim().min(1).max(50).optional(),
-  }),
+    ' username': z.string().trim().min(1).max(50).optional(),
+  })
+  .strict()
+  .transform(({ ' username': usernameWithSpace, username, ...body }) => ({
+    ...body,
+    username: username ?? usernameWithSpace,
+  }));
+
+export const signupSchema = z.object({
+  body: signupBodySchema,
 });
 
 export const loginSchema = z.object({

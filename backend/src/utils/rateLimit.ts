@@ -4,6 +4,7 @@ import { HttpStatus } from '../constants/httpStatus';
 import { sendError } from './apiResponse';
 
 export const authRateLimiter = rateLimit({
+  // Limit each IP to 30 requests per 15 minutes for authentication routes
   windowMs: 15 * 60 * 1000,
   limit: 30,
   standardHeaders: true,
