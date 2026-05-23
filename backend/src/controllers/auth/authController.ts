@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { HttpStatus } from '../../constants/httpStatus';
+import { OAuthProvider } from '../../schemas/auth.schema';
 import {
   getOAuthUrl,
   loginUser,
@@ -38,7 +39,7 @@ export const logoutController = async (req: Request, res: Response) => {
 };
 
 export const oauthController = async (req: Request, res: Response) => {
-  const provider = String(req.params.provider);
+  const provider = req.params.provider as OAuthProvider;
   const data = await getOAuthUrl(provider);
 
   sendSuccess(res, {

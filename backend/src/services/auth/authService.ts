@@ -2,6 +2,7 @@ import { env } from '../../config/env';
 import { ErrorCode } from '../../constants/errorCodes';
 import { HttpStatus } from '../../constants/httpStatus';
 import { createSupabaseUserClient, supabase } from '../../lib/supabase';
+import { OAuthProvider } from '../../schemas/auth.schema';
 import { AppError } from '../../utils/AppError';
 
 type AuthPayload = {
@@ -25,20 +26,6 @@ type SupabaseAuthData = {
   } | null;
 };
 
-const isGoogleProvider = (provider: string): provider is 'google' => {
-  return provider === 'google';
-};
-
-const validateAuthPayload = ({ email, password }: AuthPayload) => {
-  if (!email || !password) {
-    throw new AppError({
-      statusCode: HttpStatus.BAD_REQUEST,
-      code: ErrorCode.VALIDATION_ERROR,
-      message: 'Email and password are required',
-    });
-  }
-};
-
 const formatAuthResponse = (data: SupabaseAuthData) => ({
   user: data.user,
   session: data.session
@@ -53,8 +40,6 @@ const formatAuthResponse = (data: SupabaseAuthData) => ({
 });
 
 export const signupUser = async ({ email, password, username }: AuthPayload) => {
-  validateAuthPayload({ email, password });
-
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -78,8 +63,6 @@ export const signupUser = async ({ email, password, username }: AuthPayload) => 
 };
 
 export const loginUser = async ({ email, password }: AuthPayload) => {
-  validateAuthPayload({ email, password });
-
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
@@ -97,19 +80,7 @@ export const loginUser = async ({ email, password }: AuthPayload) => {
   return formatAuthResponse(data);
 };
 
-export const getOAuthUrl = async (provider: string) => {
-  if (!isGoogleProvider(provider)) {
-    throw new AppError({
-      statusCode: HttpStatus.BAD_REQUEST,
-      code: ErrorCode.AUTH_OAUTH_PROVIDER_UNSUPPORTED,
-      message: 'OAuth provider is not supported',
-      details: {
-        provider,
-        supportedProviders: ['google'],
-      },
-    });
-  }
-
+export const getOAuthUrl = async (provider: OAuthProvider) => {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
     options: {

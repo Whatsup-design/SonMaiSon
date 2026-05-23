@@ -1,31 +1,24 @@
 import dotenv from 'dotenv';
+import { z } from 'zod';
 
 dotenv.config();
 
-const parsePort = (value: string | undefined): number => {
-  const port = Number(value ?? 5000);
+const envSchema = z.object({
+  PORT: z.coerce.number().int().positive().default(5000),
+  NODE_ENV: z
+    .enum(['development', 'test', 'production'])
+    .default('development'),
+  CLIENT_URL: z.url().default('http://localhost:5173'),
+  SUPABASE_URL: z.url(),
+  SUPABASE_ANON_KEY: z.string().min(1),
+});
 
-  if (!Number.isInteger(port) || port <= 0) {
-    throw new Error('PORT must be a positive integer');
-  }
-
-  return port;
-};
-
-const requiredEnv = (key: string): string => {
-  const value = process.env[key];
-
-  if (!value) {
-    throw new Error(`${key} is required`);
-  }
-
-  return value;
-};
+const parsedEnv = envSchema.parse(process.env);
 
 export const env = {
-  port: parsePort(process.env.PORT),
-  nodeEnv: process.env.NODE_ENV ?? 'development',
-  clientUrl: process.env.CLIENT_URL ?? 'http://localhost:5173',
-  supabaseUrl: requiredEnv('SUPABASE_URL'),
-  supabaseAnonKey: requiredEnv('SUPABASE_ANON_KEY'),
+  port: parsedEnv.PORT,
+  nodeEnv: parsedEnv.NODE_ENV,
+  clientUrl: parsedEnv.CLIENT_URL,
+  supabaseUrl: parsedEnv.SUPABASE_URL,
+  supabaseAnonKey: parsedEnv.SUPABASE_ANON_KEY,
 };
