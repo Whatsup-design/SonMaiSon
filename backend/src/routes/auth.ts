@@ -6,9 +6,12 @@ import {
   signupController,
 } from '../controllers/auth/authController';
 import { asyncHandler } from '../utils/asyncHandler';
+import { authRateLimiter } from '../utils/rateLimit';
 
 
 const router = express.Router();
+
+router.use(authRateLimiter);
 
 router.post('/login', asyncHandler(loginController));
 router.post('/signup', asyncHandler(signupController));
