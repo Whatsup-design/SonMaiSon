@@ -115,6 +115,17 @@ const assertDmParticipant = async (
   }
 };
 
+export const assertDmParticipantByAuthId = async (
+  authId: string,
+  conversationId: string,
+) => {
+  const currentUser = await getAppUserByAuthId(authId);
+
+  await assertDmParticipant(conversationId, currentUser.id);
+
+  return currentUser;
+};
+
 const getConversationParticipants = async (conversationIds: string[]) => {
   if (conversationIds.length === 0) {
     return [];
@@ -348,4 +359,67 @@ export const getDmMessages = async (
       author: getSingleRelation(message.author),
     }))
     .reverse();
+};
+
+export const sendDmMessage = async (
+  authId: string,
+  conversationId: string,
+  content: string,
+) => {
+  const currentUser = await assertDmParticipantByAuthId(authId, conversationId);
+
+  const { data: message, error } = await supabase
+    .from('dm_messages')
+    .insert({
+      conversation_id: conversationId,
+      author_id: currentUser.id,
+      content,
+    })
+    .select(
+      `
+      id,
+      conversation_id,
+      author_id,
+      content,
+      created_at,
+      edited_at,
+      deleted_at,
+      author:users (
+        id,
+        auth_id,
+        email,
+        username,
+        display_name,
+        avatar_url,
+        status
+      )
+    `,
+    )
+    .single();
+
+  if (error || !message) {
+    throwSupabaseError(
+      error?.message ?? 'Failed to send DM message',
+      error,
+    );
+  }
+
+  await supabase
+    .from('dm_conversations')
+    .update({
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', conversationId);
+
+  const savedMessage = message as DmMessage;
+
+  return {
+    id: savedMessage.id,
+    conversationId: savedMessage.conversation_id,
+    authorId: savedMessage.author_id,
+    content: savedMessage.content,
+    createdAt: savedMessage.created_at,
+    editedAt: savedMessage.edited_at,
+    author: getSingleRelation(savedMessage.author),
+  };
 };

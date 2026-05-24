@@ -1,6 +1,62 @@
 import { Server as HttpServer } from 'http';
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import { env } from '../config/env';
+import { supabase } from '../lib/supabase';
+import {
+  dmJoinPayloadSchema,
+  dmSendMessagePayloadSchema,
+} from '../schemas/dm.schema';
+import {
+  assertDmParticipantByAuthId,
+  sendDmMessage,
+} from '../services/dmService';
+import { AppError } from '../utils/AppError';
+
+type AuthenticatedSocket = Socket & {
+  data: {
+    authId: string;
+  };
+};
+
+const getSocketToken = (socket: Socket) => {
+  const authToken = socket.handshake.auth?.token;
+
+  if (typeof authToken === 'string' && authToken.trim()) {
+    return authToken.trim().replace(/^Bearer\s+/i, '');
+  }
+
+  const authorization = socket.handshake.headers.authorization;
+
+  if (authorization?.startsWith('Bearer ')) {
+    return authorization.replace('Bearer ', '').trim();
+  }
+
+  return null;
+};
+
+const getErrorPayload = (error: unknown) => {
+  if (error instanceof AppError) {
+    return {
+      code: error.code,
+      message: error.message,
+      details: error.details ?? null,
+    };
+  }
+
+  if (error instanceof Error) {
+    return {
+      code: 'INTERNAL_SERVER_ERROR',
+      message: error.message,
+      details: null,
+    };
+  }
+
+  return {
+    code: 'INTERNAL_SERVER_ERROR',
+    message: 'Unexpected socket error',
+    details: null,
+  };
+};
 
 export const createSocketServer = (httpServer: HttpServer) => {
   const io = new Server(httpServer, {
@@ -10,21 +66,80 @@ export const createSocketServer = (httpServer: HttpServer) => {
     },
   });
 
-  io.on('connection', (socket) => {
-    console.log(`Socket connected: ${socket.id}`);
+  io.use(async (socket, next) => {
+    try {
+      const token = getSocketToken(socket);
 
-    socket.emit('connection:ready', {
-      socketId: socket.id,
+      if (!token) {
+        next(new Error('Socket authentication token is required'));
+        return;
+      }
+
+      const { data, error } = await supabase.auth.getUser(token);
+
+      if (error || !data.user) {
+        next(new Error('Socket authentication token is invalid'));
+        return;
+      }
+
+      socket.data.authId = data.user.id;
+      next();
+    } catch (error) {
+      next(error instanceof Error ? error : new Error('Socket auth failed'));
+    }
+  });
+
+  io.on('connection', (socket) => {
+    const authenticatedSocket = socket as AuthenticatedSocket;
+
+    console.log(`Socket connected: ${authenticatedSocket.id}`);
+
+    authenticatedSocket.emit('connection:ready', {
+      socketId: authenticatedSocket.id,
     });
 
-    socket.on('ping:server', () => {
-      socket.emit('pong:server', {
+    authenticatedSocket.on('ping:server', () => {
+      authenticatedSocket.emit('pong:server', {
         timestamp: new Date().toISOString(),
       });
     });
 
-    socket.on('disconnect', (reason) => {
-      console.log(`Socket disconnected: ${socket.id} (${reason})`);
+    authenticatedSocket.on('dm:join', async (payload) => {
+      try {
+        const { conversationId } = dmJoinPayloadSchema.parse(payload);
+
+        await assertDmParticipantByAuthId(
+          authenticatedSocket.data.authId,
+          conversationId,
+        );
+
+        await authenticatedSocket.join(`dm:${conversationId}`);
+        authenticatedSocket.emit('dm:joined', {
+          conversationId,
+        });
+      } catch (error) {
+        authenticatedSocket.emit('dm:error', getErrorPayload(error));
+      }
+    });
+
+    authenticatedSocket.on('dm:message:send', async (payload) => {
+      try {
+        const { conversationId, content } =
+          dmSendMessagePayloadSchema.parse(payload);
+        const message = await sendDmMessage(
+          authenticatedSocket.data.authId,
+          conversationId,
+          content,
+        );
+
+        io.to(`dm:${conversationId}`).emit('dm:message:new', message);
+      } catch (error) {
+        authenticatedSocket.emit('dm:error', getErrorPayload(error));
+      }
+    });
+
+    authenticatedSocket.on('disconnect', (reason) => {
+      console.log(`Socket disconnected: ${authenticatedSocket.id} (${reason})`);
     });
   });
 

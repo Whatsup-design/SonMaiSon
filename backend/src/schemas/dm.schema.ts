@@ -22,3 +22,16 @@ export const getDmMessagesSchema = z.object({
     .strict()
     .optional(),
 });
+
+export const dmJoinPayloadSchema = z
+  .object({
+    conversationId: z.uuid(),
+  })
+  .strict();
+
+export const dmSendMessagePayloadSchema = z
+  .object({
+    conversationId: z.uuid(),
+    content: z.string().trim().min(1).max(4000),
+  })
+  .strict();

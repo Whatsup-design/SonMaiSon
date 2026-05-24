@@ -1,0 +1,249 @@
+You are a senior frontend developer. Build only the Direct Message (DM) frontend integration for the Discord clone.
+
+Use the existing backend API and Socket.IO realtime events. Do not invent new backend routes. Do not hardcode URLs. Use environment variables.
+
+Environment:
+VITE_API_BASE_URL=<backend-url>
+
+Auth:
+The user is already authenticated.
+Use the stored Supabase/backend access token.
+Every REST request must include:
+
+Authorization: Bearer <accessToken>
+
+Socket.IO connection must include:
+
+auth: {
+  token: accessToken
+}
+
+REST API Contract:
+
+1. Get my DM conversations
+
+GET ${VITE_API_BASE_URL}/dm/conversations
+
+Headers:
+Authorization: Bearer <accessToken>
+
+Success response:
+{
+  "success": true,
+  "message": "DM conversations fetched successfully",
+  "data": [
+    {
+      "id": "conversation-uuid",
+      "participants": [
+        {
+          "userId": 10,
+          "joinedAt": "2026-05-24T03:10:45.501471+00:00",
+          "user": {
+            "id": 10,
+            "email": "sonson@example.com",
+            "username": "sonson",
+            "display_name": "sonson",
+            "avatar_url": null,
+            "status": "offline"
+          }
+        },
+        {
+          "userId": 2,
+          "joinedAt": "2026-05-24T03:10:45.501471+00:00",
+          "user": {
+            "id": 2,
+            "email": "friend@example.com",
+            "username": "friend",
+            "display_name": "friend",
+            "avatar_url": null,
+            "status": "offline"
+          }
+        }
+      ]
+    }
+  ]
+}
+
+Frontend behavior:
+- Fetch this when opening the DM page/sidebar.
+- Display one DM item per conversation.
+- The DM display name should be the participant that is not the current user.
+- Prefer display_name, then username, then email.
+- Store selected conversationId when user clicks a DM.
+
+2. Create or get DM conversation
+
+POST ${VITE_API_BASE_URL}/dm/conversations
+
+Headers:
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+
+Body:
+{
+  "targetUserId": 2
+}
+
+Success response:
+{
+  "success": true,
+  "message": "DM conversation ready",
+  "data": {
+    "id": "conversation-uuid",
+    "participants": [...]
+  }
+}
+
+Frontend behavior:
+- Use this when user clicks "message user" or starts a DM.
+- targetUserId is public.users.id from backend/database, not Supabase auth uuid.
+- If conversation already exists, backend returns existing conversation.
+- After success, open that conversation and load messages.
+
+3. Get messages for one DM conversation
+
+GET ${VITE_API_BASE_URL}/dm/conversations/:conversationId/messages?limit=50
+
+Headers:
+Authorization: Bearer <accessToken>
+
+Success response:
+{
+  "success": true,
+  "message": "DM messages fetched successfully",
+  "data": [
+    {
+      "id": "message-uuid",
+      "conversationId": "conversation-uuid",
+      "authorId": 10,
+      "content": "Hello",
+      "createdAt": "2026-05-24T03:30:00.000Z",
+      "editedAt": null,
+      "author": {
+        "id": 10,
+        "username": "sonson",
+        "display_name": "sonson",
+        "avatar_url": null
+      }
+    }
+  ]
+}
+
+Frontend behavior:
+- Fetch this when opening a conversation.
+- Messages are returned oldest to newest.
+- Render current user messages on one side and other user messages on the other side.
+- Use authorId to decide message ownership.
+
+Socket.IO Contract:
+
+Install/use socket.io-client.
+
+Connect:
+import { io } from "socket.io-client";
+
+const socket = io(import.meta.env.VITE_API_BASE_URL, {
+  auth: {
+    token: accessToken
+  }
+});
+
+Events to listen:
+
+1. connection:ready
+
+socket.on("connection:ready", (payload) => {
+  // payload: { socketId: string }
+});
+
+2. dm:joined
+
+socket.on("dm:joined", (payload) => {
+  // payload: { conversationId: string }
+});
+
+3. dm:message:new
+
+socket.on("dm:message:new", (message) => {
+  // Add message to the active conversation if message.conversationId matches.
+  // If message belongs to another conversation, update that DM preview/unread count.
+});
+
+Message payload:
+{
+  "id": "message-uuid",
+  "conversationId": "conversation-uuid",
+  "authorId": 10,
+  "content": "Hello from socket",
+  "createdAt": "2026-05-24T03:30:00.000Z",
+  "editedAt": null,
+  "author": {
+    "id": 10,
+    "username": "sonson",
+    "display_name": "sonson",
+    "avatar_url": null
+  }
+}
+
+4. dm:error
+
+socket.on("dm:error", (error) => {
+  // Show a user-friendly error message.
+});
+
+Error payload:
+{
+  "code": "DM_ACCESS_DENIED",
+  "message": "You are not a participant of this DM conversation",
+  "details": null
+}
+
+Events to emit:
+
+1. Join a conversation room before sending or receiving realtime messages for it
+
+socket.emit("dm:join", {
+  conversationId: selectedConversationId
+});
+
+Call this when user opens/selects a DM conversation.
+
+2. Send a DM message
+
+socket.emit("dm:message:send", {
+  conversationId: selectedConversationId,
+  content: messageText
+});
+
+Rules:
+- content must be non-empty after trim.
+- max content length is 4000.
+- Do not emit empty messages.
+- After emitting, wait for dm:message:new from backend before treating it as confirmed.
+- Optional optimistic UI is allowed, but must reconcile with backend message id.
+
+Recommended DM Page Flow:
+
+1. User opens DM page.
+2. Load conversations:
+   GET /dm/conversations
+3. User selects a conversation.
+4. Load history:
+   GET /dm/conversations/:conversationId/messages?limit=50
+5. Connect Socket.IO if not already connected.
+6. Emit:
+   dm:join { conversationId }
+7. User sends message.
+8. Emit:
+   dm:message:send { conversationId, content }
+9. Listen:
+   dm:message:new
+10. Append new message to UI.
+
+Important:
+- Do not create fake routes.
+- Do not send current user id from frontend for authorization.
+- Backend decides current user from Bearer token.
+- For DM creation, only send targetUserId.
+- Use VITE_API_BASE_URL for both REST and Socket.IO.
+- Handle loading, empty conversation list, empty message history, and API/socket errors.

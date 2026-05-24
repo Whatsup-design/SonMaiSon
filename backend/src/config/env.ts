@@ -8,9 +8,9 @@ const envSchema = z.object({
   NODE_ENV: z
     .enum(['development', 'test', 'production'])
     .default('development'),
-  CLIENT_URL: z.url().default('http://localhost:5173'),
-  SUPABASE_URL: z.url(),
-  SUPABASE_ANON_KEY: z.string().min(1),
+  CLIENT_URL: z.string().trim().pipe(z.url()).default('http://localhost:3001'),
+  SUPABASE_URL: z.string().trim().pipe(z.url()),
+  SUPABASE_ANON_KEY: z.string().trim().min(1),
 });
 
 const parsedEnv = envSchema.parse(process.env);
