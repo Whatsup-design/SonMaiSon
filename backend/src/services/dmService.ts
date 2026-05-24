@@ -64,7 +64,7 @@ const throwSupabaseError = (message: string, details: unknown): never => {
   });
 };
 
-const getAppUserByAuthId = async (authId: string): Promise<AppUser> => {
+export const getAppUserByAuthId = async (authId: string): Promise<AppUser> => {
   const { data, error } = await supabase
     .from('users')
     .select('id, auth_id, email, username, display_name, avatar_url, status')

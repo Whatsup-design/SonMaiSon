@@ -19,6 +19,7 @@ import {
 import {
   assertDmParticipantByAuthId,
   DmParticipant,
+  getAppUserByAuthId,
   getDmCallContext,
   getSingleRelation,
   sendDmMessage,
@@ -31,6 +32,7 @@ import { assertSocketMessageRateLimit } from '../utils/socketMessageRateLimit';
 type AuthenticatedSocket = Socket & {
   data: {
     authId: string;
+    appUserId: number;
   };
 };
 
@@ -75,6 +77,7 @@ const getErrorPayload = (error: unknown) => {
 };
 
 const getUserRoom = (authId: string) => `user:${authId}`;
+const getAppUserRoom = (userId: number) => `app-user:${userId}`;
 
 const formatCallUser = (participant: DmParticipant) => {
   const user = getSingleRelation(participant.user);
@@ -97,6 +100,8 @@ const getRecipientUserRooms = (participants: DmParticipant[]) => {
     if (user?.auth_id) {
       rooms.add(getUserRoom(user.auth_id));
     }
+
+    rooms.add(getAppUserRoom(participant.user_id));
   }
 
   return [...rooms];
@@ -127,6 +132,9 @@ export const createSocketServer = (httpServer: HttpServer) => {
       }
 
       socket.data.authId = data.user.id;
+      const appUser = await getAppUserByAuthId(data.user.id);
+
+      socket.data.appUserId = appUser.id;
       next();
     } catch (error) {
       next(error instanceof Error ? error : new Error('Socket auth failed'));
@@ -135,6 +143,34 @@ export const createSocketServer = (httpServer: HttpServer) => {
 
   io.on('connection', (socket) => {
     const authenticatedSocket = socket as AuthenticatedSocket;
+    const getCallDeliveryState = async (
+      conversationId: string,
+      recipientParticipants: DmParticipant[],
+    ) => {
+      const socketIds = new Set<string>();
+      const recipientRooms = getRecipientUserRooms(recipientParticipants);
+
+      for (const room of recipientRooms) {
+        const sockets = await io.in(room).fetchSockets();
+
+        for (const recipientSocket of sockets) {
+          socketIds.add(recipientSocket.id);
+        }
+      }
+
+      const dmSockets = await io.in(`dm:${conversationId}`).fetchSockets();
+
+      for (const dmSocket of dmSockets) {
+        if (dmSocket.id !== authenticatedSocket.id) {
+          socketIds.add(dmSocket.id);
+        }
+      }
+
+      return {
+        recipientCount: recipientParticipants.length,
+        onlineRecipientSocketCount: socketIds.size,
+      };
+    };
     const emitToCallRecipients = (
       conversationId: string,
       recipientParticipants: DmParticipant[],
@@ -154,9 +190,12 @@ export const createSocketServer = (httpServer: HttpServer) => {
     console.log(`Socket connected: ${authenticatedSocket.id}`);
 
     authenticatedSocket.join(getUserRoom(authenticatedSocket.data.authId));
+    authenticatedSocket.join(getAppUserRoom(authenticatedSocket.data.appUserId));
 
     authenticatedSocket.emit('connection:ready', {
       socketId: authenticatedSocket.id,
+      authId: authenticatedSocket.data.authId,
+      userId: authenticatedSocket.data.appUserId,
     });
 
     authenticatedSocket.on('ping:server', () => {
@@ -231,11 +270,24 @@ export const createSocketServer = (httpServer: HttpServer) => {
           recipients,
           createdAt: new Date().toISOString(),
         };
+        const delivery = await getCallDeliveryState(
+          conversationId,
+          callContext.recipientParticipants,
+        );
+
+        console.log('Call invite delivery', {
+          callId,
+          conversationId,
+          callerAuthId: authenticatedSocket.data.authId,
+          recipientCount: delivery.recipientCount,
+          onlineRecipientSocketCount: delivery.onlineRecipientSocketCount,
+        });
 
         authenticatedSocket.emit('call:invited', {
           ...baseCallPayload,
           direction: 'outgoing',
           callee: recipients[0] ?? null,
+          delivery,
         });
 
         emitToCallRecipients(
