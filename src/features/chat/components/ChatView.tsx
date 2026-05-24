@@ -32,12 +32,12 @@ export const ChatView: React.FC<ChatViewProps> = ({
   } = useMessages(token, channel.id)
 
   return (
-    <div className="flex flex-1 flex-col h-screen overflow-hidden bg-[#313338]">
+    <div className="flex flex-1 flex-col h-full overflow-hidden bg-[var(--color-surface-raised)] rounded-2xl border border-slate-200">
       {/* Header */}
       <div
         className={cn(
           "flex h-12 items-center gap-2 px-4",
-          "border-b border-[#1F2023]",
+          "border-b border-slate-200",
           "shrink-0"
         )}
       >
@@ -49,7 +49,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
             "flex h-8 w-8 items-center justify-center",
             "rounded-md text-slate-400",
             "transition-colors duration-150",
-            "hover:bg-white/10 hover:text-white",
+            "hover:bg-slate-100 hover:text-slate-900",
             "md:hidden"
           )}
           aria-label="Open sidebar"
@@ -58,7 +58,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
         </button>
 
         <Hash className="h-5 w-5 text-slate-400 shrink-0" />
-        <h1 className="text-base font-semibold text-white truncate">
+        <h1 className="text-base font-semibold text-slate-800 truncate">
           {channel.name}
         </h1>
       </div>

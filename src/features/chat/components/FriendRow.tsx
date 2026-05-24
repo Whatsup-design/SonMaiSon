@@ -26,22 +26,22 @@ export const FriendRow: React.FC<FriendRowProps> = ({
         "rounded-lg",
         "transition-colors duration-150",
         "hover:bg-white/[0.03] cursor-pointer",
-        "border-t border-white/5"
+        "border-t border-slate-100"
       )}
     >
       {/* Avatar */}
       <div className="relative shrink-0">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#5865F2] text-xs font-semibold text-white">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-500 text-xs font-semibold text-white">
           {initials}
         </div>
-        <div className="absolute -bottom-0.5 -right-0.5 ring-[3px] ring-[#313338] rounded-full">
+        <div className="absolute -bottom-0.5 -right-0.5 ring-[3px] ring-[var(--color-surface-raised)] rounded-full">
           <StatusDot status={friend.status} size="sm" className="ring-0" />
         </div>
       </div>
 
       {/* Name + status */}
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-white">
+        <p className="truncate text-sm font-semibold text-slate-800">
           {friend.username}
         </p>
         <p className="truncate text-xs font-medium text-slate-400 capitalize">
@@ -64,7 +64,7 @@ export const FriendRow: React.FC<FriendRowProps> = ({
               onClick={() => onMessage(friend.id)}
               className={cn(
                 "flex h-9 w-9 items-center justify-center",
-                "rounded-full bg-[#2B2D31]",
+                "rounded-full bg-[var(--color-surface-overlay)]",
                 "text-slate-400",
                 "transition-colors duration-150",
                 "hover:text-emerald-400"
@@ -78,7 +78,7 @@ export const FriendRow: React.FC<FriendRowProps> = ({
               onClick={() => onRemove(friend.id)}
               className={cn(
                 "flex h-9 w-9 items-center justify-center",
-                "rounded-full bg-[#2B2D31]",
+                "rounded-full bg-[var(--color-surface-overlay)]",
                 "text-slate-400",
                 "transition-colors duration-150",
                 "hover:text-rose-400"
@@ -95,10 +95,10 @@ export const FriendRow: React.FC<FriendRowProps> = ({
               onClick={() => onMessage(friend.id)}
               className={cn(
                 "flex h-9 w-9 items-center justify-center",
-                "rounded-full bg-[#2B2D31]",
+                "rounded-full bg-[var(--color-surface-overlay)]",
                 "text-slate-400",
                 "transition-colors duration-150",
-                "hover:text-white"
+                "hover:text-slate-900"
               )}
               aria-label="Send message"
             >
@@ -109,7 +109,7 @@ export const FriendRow: React.FC<FriendRowProps> = ({
               onClick={() => onRemove(friend.id)}
               className={cn(
                 "flex h-9 w-9 items-center justify-center",
-                "rounded-full bg-[#2B2D31]",
+                "rounded-full bg-[var(--color-surface-overlay)]",
                 "text-slate-400",
                 "transition-colors duration-150",
                 "hover:text-rose-400"
@@ -125,7 +125,7 @@ export const FriendRow: React.FC<FriendRowProps> = ({
             onClick={() => onRemove(friend.id)}
             className={cn(
               "flex h-9 w-9 items-center justify-center",
-              "rounded-full bg-[#2B2D31]",
+              "rounded-full bg-[var(--color-surface-overlay)]",
               "text-slate-400",
               "transition-colors duration-150",
               "hover:text-rose-400"

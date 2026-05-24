@@ -121,7 +121,7 @@ export const MessageList: React.FC<MessageListProps> = ({
       {/* "Beginning of channel" indicator */}
       {!hasMore ? (
         <div className="px-4 pt-8 pb-4">
-          <h3 className="text-2xl font-bold text-white tracking-[-0.02em]">
+          <h3 className="text-2xl font-bold text-slate-800 tracking-[-0.02em]">
             Welcome to the channel!
           </h3>
           <p className="mt-1 text-sm font-medium text-slate-400">

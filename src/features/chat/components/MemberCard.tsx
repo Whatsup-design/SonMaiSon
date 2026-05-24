@@ -30,22 +30,22 @@ export const MemberCard: React.FC<MemberCardProps> = ({ member }) => {
         "flex items-center gap-3 px-3 py-2.5",
         "rounded-lg",
         "transition-colors duration-150",
-        "hover:bg-white/5 cursor-pointer"
+        "hover:bg-slate-100 cursor-pointer"
       )}
     >
       {/* Avatar */}
       <div className="relative shrink-0">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#5865F2] text-xs font-semibold text-white">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500 text-xs font-semibold text-white">
           {(member.username ?? "?").slice(0, 2).toUpperCase()}
         </div>
-        <div className="absolute -bottom-0.5 -right-0.5 ring-[3px] ring-[#2B2D31] rounded-full">
+        <div className="absolute -bottom-0.5 -right-0.5 ring-[3px] ring-[var(--color-surface-overlay)] rounded-full">
           <StatusDot status={member.status} size="sm" className="ring-0" />
         </div>
       </div>
 
       {/* Name + role */}
       <div className="flex min-w-0 flex-1 items-center gap-2">
-        <span className="truncate text-sm font-medium text-slate-200">
+        <span className="truncate text-sm font-medium text-slate-700">
           {member.username}
         </span>
         {badge ? (

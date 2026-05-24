@@ -45,9 +45,10 @@ export const ServerSidebar: React.FC<ServerSidebarProps> = ({
       <nav
         className={cn(
           "flex flex-col items-center gap-2",
-          "h-screen w-[72px] shrink-0 py-3",
-          "bg-[#1E1F22] overflow-y-auto",
-          "scrollbar-none"
+          "h-full w-[72px] shrink-0 py-3",
+          "bg-[var(--color-surface-raised)] rounded-2xl",
+          "border border-slate-200",
+          "overflow-y-auto scrollbar-none"
         )}
         aria-label="Server navigation"
       >
@@ -56,7 +57,7 @@ export const ServerSidebar: React.FC<ServerSidebarProps> = ({
           <span
             className={cn(
               "absolute left-0 top-1/2 -translate-x-[2px] -translate-y-1/2",
-              "w-1 rounded-r-full bg-white",
+              "w-1 rounded-r-full bg-indigo-500",
               "transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
               isHomeActive ? "h-10" : "h-0 opacity-0 group-hover:h-5 group-hover:opacity-100"
             )}
@@ -69,8 +70,8 @@ export const ServerSidebar: React.FC<ServerSidebarProps> = ({
               "text-white",
               "transition-all duration-200",
               isHomeActive
-                ? "rounded-xl bg-[#5865F2]"
-                : "rounded-[24px] bg-[#313338] hover:rounded-xl hover:bg-[#5865F2]"
+                ? "rounded-xl bg-indigo-500"
+                : "rounded-[24px] bg-slate-100 text-slate-500 hover:rounded-xl hover:bg-indigo-500 hover:text-white"
             )}
             aria-label="Direct Messages"
           >
@@ -79,7 +80,7 @@ export const ServerSidebar: React.FC<ServerSidebarProps> = ({
         </div>
 
         {/* Divider */}
-        <div className="mx-auto h-[2px] w-8 rounded-full bg-white/8" />
+        <div className="mx-auto h-[2px] w-8 rounded-full bg-slate-200" />
 
         {/* Server list */}
         <div className="flex flex-col items-center gap-2">
@@ -99,9 +100,9 @@ export const ServerSidebar: React.FC<ServerSidebarProps> = ({
           onClick={() => setIsCreateOpen(true)}
           className={cn(
             "flex h-12 w-12 items-center justify-center",
-            "rounded-[24px] bg-[#2B2D31] text-emerald-400",
+            "rounded-[24px] bg-slate-100 text-indigo-500",
             "transition-all duration-200",
-            "hover:rounded-2xl hover:bg-emerald-500 hover:text-white"
+            "hover:rounded-2xl hover:bg-indigo-500 hover:text-white"
           )}
           aria-label="Add a server"
         >
@@ -113,9 +114,9 @@ export const ServerSidebar: React.FC<ServerSidebarProps> = ({
           type="button"
           className={cn(
             "flex h-12 w-12 items-center justify-center",
-            "rounded-[24px] bg-[#2B2D31] text-emerald-400",
+            "rounded-[24px] bg-slate-100 text-indigo-500",
             "transition-all duration-200",
-            "hover:rounded-2xl hover:bg-emerald-500 hover:text-white"
+            "hover:rounded-2xl hover:bg-indigo-500 hover:text-white"
           )}
           aria-label="Explore public servers"
         >
@@ -132,7 +133,7 @@ export const ServerSidebar: React.FC<ServerSidebarProps> = ({
         <p className="text-sm text-slate-400 mb-4">
           Give your new server a name. You can always change it later.
         </p>
-        <label className="block text-xs font-bold uppercase text-slate-300 mb-2">
+        <label className="block text-xs font-bold uppercase text-slate-600 mb-2">
           Server Name
         </label>
         <input
@@ -143,11 +144,11 @@ export const ServerSidebar: React.FC<ServerSidebarProps> = ({
           placeholder="My Awesome Server"
           autoFocus
           className={cn(
-            "w-full px-3 py-2 rounded-md",
-            "bg-[#1E1F22] text-white text-sm",
-            "border border-white/10",
-            "outline-none focus:border-[#5865F2]",
-            "placeholder:text-slate-500",
+            "w-full px-3 py-2 rounded-lg",
+            "bg-[var(--color-surface-input)] text-slate-800 text-sm",
+            "border border-slate-200",
+            "outline-none focus:border-indigo-500",
+            "placeholder:text-slate-400",
             "transition-colors duration-150"
           )}
         />
@@ -160,8 +161,8 @@ export const ServerSidebar: React.FC<ServerSidebarProps> = ({
             "text-sm font-semibold text-white",
             "transition-colors duration-150",
             serverName.trim() && !isCreating
-              ? "bg-[#5865F2] hover:bg-[#4752C4]"
-              : "bg-[#5865F2]/50 cursor-not-allowed"
+              ? "bg-indigo-500 hover:bg-indigo-600"
+              : "bg-indigo-500/50 cursor-not-allowed"
           )}
         >
           {isCreating ? "Creating..." : "Create Server"}

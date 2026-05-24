@@ -22,8 +22,8 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
     "text-sm font-medium",
     "transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]",
     isActive
-      ? "text-white bg-white/10"
-      : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+      ? "text-slate-900 bg-indigo-50 font-semibold"
+      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
   )
 
   return (

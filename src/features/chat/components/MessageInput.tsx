@@ -36,9 +36,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       <div
         className={cn(
           "flex items-end gap-2 px-4 py-2.5",
-          "rounded-lg bg-[#383A40]",
-          "border border-white/5",
-          "focus-within:border-white/10"
+          "rounded-xl bg-[var(--color-surface-input)]",
+          "border border-slate-200",
+          "focus-within:border-white/[0.12]"
         )}
       >
         {/* Attachment button */}
@@ -48,7 +48,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             "flex h-8 w-8 shrink-0 items-center justify-center",
             "rounded-md text-slate-400",
             "transition-colors duration-150",
-            "hover:text-slate-200"
+            "hover:text-slate-800"
           )}
           aria-label="Add attachment"
         >
@@ -66,9 +66,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           className={cn(
             "flex-1 resize-none",
             "max-h-32 min-h-[32px] py-1",
-            "text-sm font-medium text-slate-200",
+            "text-sm font-medium text-slate-700",
             "bg-transparent outline-none",
-            "placeholder:text-slate-500",
+            "placeholder:text-slate-400",
             "disabled:opacity-50"
           )}
         />
@@ -76,7 +76,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         {/* Sending indicator / Send button */}
         {isSending ? (
           <div className="flex h-8 w-8 shrink-0 items-center justify-center">
-            <Loader2 className="h-4 w-4 text-[#5865F2] animate-spin" />
+            <Loader2 className="h-4 w-4 text-indigo-500 animate-spin" />
           </div>
         ) : (
           <button
@@ -88,8 +88,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
               "rounded-md",
               "transition-all duration-150",
               value.trim()
-                ? "text-white bg-[#5865F2] hover:bg-[#4752C4] active:scale-95"
-                : "text-slate-500 cursor-default"
+                ? "text-slate-800 bg-indigo-500 hover:bg-indigo-600 active:scale-95"
+                : "text-slate-400 cursor-default"
             )}
             aria-label="Send message"
           >

@@ -3,7 +3,22 @@
 @theme {
   --font-sans: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
 
-  --animate-fadeIn: fadeIn 0.2s ease-out;
+  /* Brand accent — warm, friendly indigo */
+  --color-accent: #6366F1;
+  --color-accent-hover: #4F46E5;
+  --color-accent-muted: rgba(99, 102, 241, 0.10);
+
+  /* Light surfaces */
+  --color-surface-base: #F1F5F9;
+  --color-surface-raised: #FFFFFF;
+  --color-surface-overlay: #F8FAFC;
+  --color-surface-input: #F1F5F9;
+
+  /* Semantic borders */
+  --color-border: #E2E8F0;
+  --color-border-subtle: #F1F5F9;
+
+  --animate-fadeIn: fadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
   @keyframes fadeIn {
     from {
@@ -20,10 +35,12 @@
 @layer base {
   body {
     @apply font-sans font-medium antialiased;
+    background-color: var(--color-surface-base);
+    color: #334155;
   }
 }
 
-/* ─── Discord scrollbar & utility classes ───────────────────────── */
+/* ─── Scrollbar ───────────────────────── */
 
 @utility scrollbar-none {
   -ms-overflow-style: none;
@@ -35,6 +52,5 @@
 
 @utility scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: #1a1b1e transparent;
+  scrollbar-color: rgba(0,0,0,0.08) transparent;
 }
-

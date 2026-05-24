@@ -33,7 +33,7 @@ export const ServerIcon: React.FC<ServerIconProps> = ({
 
   const pillClasses = cn(
     "absolute left-0 top-1/2 -translate-x-[2px] -translate-y-1/2",
-    "w-1 rounded-r-full bg-white",
+    "w-1 rounded-r-full bg-indigo-500",
     "transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
     isActive
       ? "h-10"
@@ -67,7 +67,7 @@ export const ServerIcon: React.FC<ServerIconProps> = ({
           "pointer-events-none absolute left-full z-50 ml-4",
           "whitespace-nowrap rounded-lg px-3 py-2",
           "text-sm font-semibold text-white",
-          "bg-slate-900 shadow-lg",
+          "bg-slate-800 shadow-lg",
           "transition-all duration-150",
           isHovered ? "scale-100 opacity-100" : "scale-95 opacity-0"
         )}

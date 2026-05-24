@@ -47,7 +47,7 @@ const CategorySection: React.FC<CategorySectionProps> = ({
             "text-[11px] font-semibold tracking-[0.02em] uppercase",
             "text-slate-400 cursor-pointer",
             "transition-colors duration-150",
-            "hover:text-slate-200"
+            "hover:text-slate-800"
           )}
         >
           <ChevronDown
@@ -68,7 +68,7 @@ const CategorySection: React.FC<CategorySectionProps> = ({
               "flex h-4 w-4 items-center justify-center",
               "text-slate-400 cursor-pointer",
               "transition-colors duration-150",
-              "hover:text-slate-200"
+              "hover:text-slate-800"
             )}
             aria-label="Create channel"
           >
@@ -163,8 +163,9 @@ export const ChannelSidebar: React.FC<ChannelSidebarProps> = ({
       <div
         className={cn(
           "flex flex-col",
-          "h-screen w-60 shrink-0",
-          "bg-[#2B2D31]"
+          "h-full w-60 shrink-0",
+          "bg-[var(--color-surface-raised)] rounded-2xl",
+          "border border-slate-200"
         )}
       >
         {/* Server header — dropdown trigger */}
@@ -174,10 +175,10 @@ export const ChannelSidebar: React.FC<ChannelSidebarProps> = ({
             onClick={() => setIsDropdownOpen((p) => !p)}
             className={cn(
               "flex h-12 w-full items-center justify-between px-4",
-              "text-base font-semibold text-white",
-              "border-b border-[#1F2023]",
+              "text-base font-semibold text-slate-800",
+              "border-b border-slate-200",
               "transition-colors duration-150",
-              "hover:bg-white/5 cursor-pointer"
+              "hover:bg-slate-100 cursor-pointer"
             )}
           >
             <span className="truncate">{server.name}</span>
@@ -194,9 +195,9 @@ export const ChannelSidebar: React.FC<ChannelSidebarProps> = ({
             <div
               className={cn(
                 "absolute left-2 right-2 top-[52px] z-20",
-                "rounded-lg bg-[#111214] p-1.5",
+                "rounded-lg bg-[var(--color-surface-overlay)] p-1.5",
                 "shadow-xl shadow-black/40",
-                "border border-white/5"
+                "border border-slate-200"
               )}
             >
               {/* Leave Server — hidden for owners */}
@@ -210,7 +211,7 @@ export const ChannelSidebar: React.FC<ChannelSidebarProps> = ({
                     "rounded-md text-sm font-medium",
                     "transition-colors duration-150 cursor-pointer",
                     isLeaving
-                      ? "text-slate-500 cursor-not-allowed"
+                      ? "text-slate-400 cursor-not-allowed"
                       : "text-rose-400 hover:bg-rose-500/10"
                   )}
                 >
@@ -218,7 +219,7 @@ export const ChannelSidebar: React.FC<ChannelSidebarProps> = ({
                   <span>{isLeaving ? "Leaving..." : "Leave Server"}</span>
                 </button>
               ) : (
-                <p className="px-2.5 py-2 text-xs text-slate-500">
+                <p className="px-2.5 py-2 text-xs text-slate-400">
                   Owners cannot leave the server.
                 </p>
               )}
@@ -254,7 +255,7 @@ export const ChannelSidebar: React.FC<ChannelSidebarProps> = ({
         <p className="text-sm text-slate-400 mb-4">
           Create a new text channel for your server.
         </p>
-        <label className="block text-xs font-bold uppercase text-slate-300 mb-2">
+        <label className="block text-xs font-bold uppercase text-slate-600 mb-2">
           Channel Name
         </label>
         <input
@@ -265,11 +266,11 @@ export const ChannelSidebar: React.FC<ChannelSidebarProps> = ({
           placeholder="general-chat"
           autoFocus
           className={cn(
-            "w-full px-3 py-2 rounded-md",
-            "bg-[#1E1F22] text-white text-sm",
-            "border border-white/10",
-            "outline-none focus:border-[#5865F2]",
-            "placeholder:text-slate-500",
+            "w-full px-3 py-2 rounded-lg",
+            "bg-[var(--color-surface-input)] text-slate-800 text-sm",
+            "border border-slate-200",
+            "outline-none focus:border-indigo-500",
+            "placeholder:text-slate-400",
             "transition-colors duration-150"
           )}
         />
@@ -282,8 +283,8 @@ export const ChannelSidebar: React.FC<ChannelSidebarProps> = ({
             "text-sm font-semibold text-white",
             "transition-colors duration-150",
             channelName.trim() && !isCreating
-              ? "bg-[#5865F2] hover:bg-[#4752C4]"
-              : "bg-[#5865F2]/50 cursor-not-allowed"
+              ? "bg-indigo-500 hover:bg-indigo-600"
+              : "bg-indigo-500/50 cursor-not-allowed"
           )}
         >
           {isCreating ? "Creating..." : "Create Channel"}

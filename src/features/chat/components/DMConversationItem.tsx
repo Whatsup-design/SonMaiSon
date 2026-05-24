@@ -26,8 +26,8 @@ export const DMConversationItem: React.FC<DMConversationItemProps> = ({
         "rounded-md cursor-pointer",
         "transition-colors duration-150",
         isActive
-          ? "bg-white/10 text-white"
-          : "text-slate-300 hover:bg-white/5 hover:text-white"
+          ? "bg-indigo-50 text-slate-800"
+          : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
       )}
     >
       {/* Avatar */}
@@ -39,7 +39,7 @@ export const DMConversationItem: React.FC<DMConversationItemProps> = ({
             className="h-8 w-8 rounded-full object-cover"
           />
         ) : (
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#5865F2] text-xs font-semibold text-white">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500 text-xs font-semibold text-white">
             {initials}
           </div>
         )}

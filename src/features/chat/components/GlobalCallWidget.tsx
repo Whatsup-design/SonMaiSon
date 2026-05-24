@@ -71,11 +71,11 @@ export const GlobalCallWidget: React.FC<GlobalCallWidgetProps> = ({
         className={cn(
           "fixed bottom-6 right-6 z-50",
           "flex items-center gap-4 p-4",
-          "rounded-xl shadow-lg",
-          "bg-[#1E1F22]",
+          "rounded-xl shadow-2xl shadow-black/40",
+          "bg-slate-900/90 backdrop-blur-md",
           callState === "connected"
-            ? "border border-emerald-500/50"
-            : "border border-[#5865F2]/50"
+            ? "border border-emerald-500/40"
+            : "border border-indigo-500/40"
         )}
       >
         {/* Pulsing dot + info */}
@@ -87,7 +87,7 @@ export const GlobalCallWidget: React.FC<GlobalCallWidgetProps> = ({
             <span
               className={cn(
                 "relative inline-flex h-2.5 w-2.5 rounded-full",
-                callState === "connected" ? "bg-emerald-500" : "bg-[#5865F2]"
+                callState === "connected" ? "bg-emerald-500" : "bg-indigo-500"
               )}
             />
           </div>
@@ -119,7 +119,7 @@ export const GlobalCallWidget: React.FC<GlobalCallWidgetProps> = ({
                 "rounded-lg transition-all duration-150",
                 isMuted
                   ? "bg-rose-500/20 text-rose-400"
-                  : "bg-white/10 text-white hover:bg-white/20"
+                  : "bg-indigo-50 text-slate-800 hover:bg-slate-200"
               )}
               aria-label={isMuted ? "Unmute" : "Mute"}
             >

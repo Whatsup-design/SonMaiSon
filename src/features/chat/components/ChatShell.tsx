@@ -233,7 +233,7 @@ export const ChatShell: React.FC = () => {
     // Fallback
     return (
       <div className="flex flex-1 items-center justify-center">
-        <p className="text-lg font-medium text-slate-500">
+        <p className="text-lg font-medium text-slate-400">
           Select a server to get started
         </p>
       </div>
@@ -241,9 +241,9 @@ export const ChatShell: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#313338]">
+    <div className="flex h-screen w-screen overflow-hidden bg-[var(--color-surface-base)] p-3 gap-3">
       {/* ── Desktop sidebars (always visible on md+) ── */}
-      <div className="hidden md:flex">
+      <div className="hidden md:flex gap-3 shrink-0">
         <ServerSidebar
           servers={servers}
           activeServerId={selectedServer?.id ?? null}
@@ -272,7 +272,7 @@ export const ChatShell: React.FC = () => {
           <button
             type="button"
             onClick={closeMobileSidebar}
-            className="flex-1 bg-black/50 cursor-default"
+            className="flex-1 bg-black/60 backdrop-blur-sm cursor-default"
             aria-label="Close sidebar"
           />
         </div>

@@ -6,8 +6,8 @@ let socket: Socket | null = null
 let currentToken: string | null = null
 
 export function getSocket(token: string): Socket {
-  // Return existing socket if connected with the same token
-  if (socket?.connected && currentToken === token) return socket
+  // Return existing socket if it exists with the same token (don't require connected — it may be reconnecting)
+  if (socket && currentToken === token) return socket
 
   // Clean up stale socket (different token or disconnected)
   if (socket) {

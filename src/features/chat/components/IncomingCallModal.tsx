@@ -23,20 +23,20 @@ export const IncomingCallModal: React.FC<IncomingCallModalProps> = ({
         className={cn(
           "relative z-10 flex flex-col items-center gap-6",
           "w-full max-w-xs mx-4 px-8 py-10",
-          "rounded-2xl bg-[#1E1F22]",
+          "rounded-2xl bg-[var(--color-surface-input)]",
           "shadow-2xl shadow-black/60"
         )}
       >
         {/* Pulsing avatar */}
         <div className="relative">
-          <div className="absolute inset-0 rounded-full bg-[#5865F2]/30 animate-ping" />
-          <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-[#5865F2] text-2xl font-bold text-white">
+          <div className="absolute inset-0 rounded-full bg-indigo-500/30 animate-ping" />
+          <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-indigo-500 text-2xl font-bold text-slate-800">
             {(callerName ?? "?").slice(0, 2).toUpperCase()}
           </div>
         </div>
 
         <div className="text-center">
-          <p className="text-lg font-bold text-white">{callerName}</p>
+          <p className="text-lg font-bold text-slate-800">{callerName}</p>
           <p className="text-sm text-slate-400 mt-1">Incoming voice call...</p>
         </div>
 
@@ -54,7 +54,7 @@ export const IncomingCallModal: React.FC<IncomingCallModalProps> = ({
             )}
             aria-label="Reject call"
           >
-            <PhoneOff className="h-6 w-6 text-white" />
+            <PhoneOff className="h-6 w-6 text-slate-800" />
           </button>
 
           {/* Accept */}
@@ -69,7 +69,7 @@ export const IncomingCallModal: React.FC<IncomingCallModalProps> = ({
             )}
             aria-label="Accept call"
           >
-            <Phone className="h-6 w-6 text-white" />
+            <Phone className="h-6 w-6 text-slate-800" />
           </button>
         </div>
       </div>

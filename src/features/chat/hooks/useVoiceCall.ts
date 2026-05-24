@@ -77,6 +77,7 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
     webrtcRef.current.cleanup()
     callIdRef.current = null
     conversationIdRef.current = null
+    callStateRef.current = "idle"  // sync ref immediately
     setCallState("idle")
     setIncomingCall(null)
     setPeerName(null)
@@ -88,12 +89,18 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
   // ── Start call (caller side) ──
   const startCall = useCallback(
     async (conversationId: string, name: string) => {
-      if (!token || callState !== "idle") return
+      console.log("[VoiceCall] startCall called", { conversationId, name, callState, hasToken: !!token })
+      if (!token || callState !== "idle") {
+        console.log("[VoiceCall] startCall blocked — token:", !!token, "callState:", callState)
+        return
+      }
       setCallError(null)
 
       try {
         await webrtcRef.current.requestMic()
+        console.log("[VoiceCall] Mic granted")
       } catch (err) {
+        console.error("[VoiceCall] Mic denied:", err)
         setCallError(getMicErrorMessage(err))
         return
       }
@@ -106,14 +113,16 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
       // Timeout: if no response in 30s, auto-cleanup
       clearCallingTimeout()
       callingTimeoutRef.current = setTimeout(() => {
-        setCallError("No answer — call timed out")
+        setCallError("No answer \u2014 call timed out")
         webrtcRef.current.cleanup()
         callIdRef.current = null
         conversationIdRef.current = null
+        callStateRef.current = "idle"  // sync ref immediately
         setCallState("idle")
       }, CALL_TIMEOUT_MS)
 
       const socket = getSocket(token)
+      console.log("[VoiceCall] Emitting call:invite", { conversationId, socketConnected: socket.connected })
       socket.emit("call:invite", { conversationId })
     },
     [token, callState, clearCallingTimeout]
@@ -190,8 +199,17 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
     if (!token) return
 
     const socket = getSocket(token)
+    console.log("[VoiceCall] Registering socket listeners, connected:", socket.connected)
 
-    // Incoming call invitation
+    // Debug: log ALL events received on this socket
+    const onAny = (event: string, ...args: unknown[]) => {
+      if (event.startsWith("call:")) {
+        console.log("[Socket Event]", event, args)
+      }
+    }
+    socket.onAny(onAny)
+
+    // Incoming call invitation (backend emits 'call:incoming')
     const handleInvited = (data: {
       callId: string
       conversationId: string
@@ -199,12 +217,17 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
       caller: { id: number; username: string; displayName: string }
       createdAt: string
     }) => {
+      console.log("[VoiceCall] call:invited received", { callStateRef: callStateRef.current, data })
       // Ignore if we are the caller (backend broadcasts to both users)
-      if (callStateRef.current !== "idle") return
+      if (callStateRef.current !== "idle") {
+        console.log("[VoiceCall] call:invited IGNORED — callState is", callStateRef.current)
+        return
+      }
 
       const name = data.caller.displayName || data.caller.username || "Unknown"
       callIdRef.current = data.callId
       conversationIdRef.current = data.conversationId
+      callStateRef.current = "incoming"  // sync ref immediately
       setPeerName(name)
       setIncomingCall({
         callId: data.callId,
@@ -305,7 +328,7 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
       endCallRef.current()
     }
 
-    socket.on("call:invited", handleInvited)
+    socket.on("call:incoming", handleInvited)
     socket.on("call:accepted", handleAccepted)
     socket.on("call:webrtc:offer", handleOffer)
     socket.on("call:webrtc:answer", handleAnswer)
@@ -315,7 +338,8 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
     socket.on("call:error", handleError)
 
     return () => {
-      socket.off("call:invited", handleInvited)
+      socket.offAny(onAny)
+      socket.off("call:incoming", handleInvited)
       socket.off("call:accepted", handleAccepted)
       socket.off("call:webrtc:offer", handleOffer)
       socket.off("call:webrtc:answer", handleAnswer)

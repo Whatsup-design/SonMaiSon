@@ -16,9 +16,9 @@ export const MemberSidebar: React.FC<MemberSidebarProps> = ({
     <div
       className={cn(
         "hidden lg:flex flex-col",
-        "h-screen w-60 shrink-0",
-        "bg-[#2B2D31]",
-        "border-l border-[#1F2023]",
+        "h-full w-60 shrink-0 ml-3",
+        "bg-[var(--color-surface-raised)] rounded-2xl",
+        "border border-slate-200",
         "overflow-y-auto scrollbar-thin"
       )}
     >

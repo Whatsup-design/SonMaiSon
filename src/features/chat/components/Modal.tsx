@@ -48,8 +48,9 @@ export const Modal: React.FC<ModalProps> = ({
         ref={dialogRef}
         className={cn(
           "relative z-10 w-full max-w-md mx-4",
-          "rounded-xl bg-[#313338]",
-          "shadow-2xl shadow-black/40"
+          "rounded-2xl bg-[var(--color-surface-overlay)]",
+          "border border-slate-200",
+          "shadow-2xl shadow-black/50"
         )}
         role="dialog"
         aria-modal="true"
@@ -57,7 +58,7 @@ export const Modal: React.FC<ModalProps> = ({
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-2">
-          <h2 className="text-xl font-bold text-white">{title}</h2>
+          <h2 className="text-xl font-bold text-slate-800">{title}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -65,7 +66,7 @@ export const Modal: React.FC<ModalProps> = ({
               "flex h-8 w-8 items-center justify-center",
               "rounded-full text-slate-400",
               "transition-colors duration-150",
-              "hover:bg-white/10 hover:text-white"
+              "hover:bg-slate-100 hover:text-slate-900"
             )}
             aria-label="Close"
           >

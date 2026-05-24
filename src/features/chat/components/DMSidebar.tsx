@@ -26,8 +26,9 @@ export const DMSidebar: React.FC<DMSidebarProps> = ({
     <div
       className={cn(
         "flex flex-col",
-        "h-screen w-60 shrink-0",
-        "bg-[#2B2D31]"
+        "h-full w-60 shrink-0",
+        "bg-[var(--color-surface-raised)] rounded-2xl",
+        "border border-slate-200"
       )}
     >
       {/* Search input */}
@@ -36,9 +37,9 @@ export const DMSidebar: React.FC<DMSidebarProps> = ({
           type="button"
           className={cn(
             "flex w-full items-center gap-2 px-2 py-1.5",
-            "rounded-md bg-[#1E1F22]",
+            "rounded-lg bg-[var(--color-surface-input)]",
             "text-xs font-medium text-slate-400",
-            "cursor-pointer hover:text-slate-300",
+            "cursor-pointer hover:text-slate-600",
             "transition-colors duration-150"
           )}
         >
@@ -59,8 +60,8 @@ export const DMSidebar: React.FC<DMSidebarProps> = ({
             "text-sm font-medium",
             "transition-colors duration-150",
             isFriendsActive
-              ? "bg-white/10 text-white"
-              : "text-slate-300 hover:bg-white/5 hover:text-white"
+              ? "bg-indigo-50 text-slate-800"
+              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
           )}
         >
           <Users className="h-5 w-5 shrink-0" />
@@ -78,7 +79,7 @@ export const DMSidebar: React.FC<DMSidebarProps> = ({
             <Loader2 className="h-5 w-5 text-slate-400 animate-spin" />
           </div>
         ) : conversations.length === 0 ? (
-          <p className="px-2 py-4 text-xs font-medium text-slate-500 text-center">
+          <p className="px-2 py-4 text-xs font-medium text-slate-400 text-center">
             No conversations yet
           </p>
         ) : (

@@ -77,13 +77,14 @@ export const MessageItem: React.FC<MessageItemProps> = React.memo(function Messa
   if (isCompact) {
     return (
       <div
+        data-message-id={message.id}
         className={cn(
           "group relative flex items-start gap-4 px-4 py-0.5",
           "hover:bg-white/[0.02]"
         )}
       >
         {/* Hover timestamp in the gutter */}
-        <span className="w-10 shrink-0 pt-0.5 text-right text-[10px] font-medium text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity duration-100">
+        <span className="w-10 shrink-0 pt-0.5 text-right text-[10px] font-medium text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity duration-100">
           {formatCompactTime(message.timestamp)}
         </span>
 
@@ -97,10 +98,10 @@ export const MessageItem: React.FC<MessageItemProps> = React.memo(function Messa
               onCancel={handleCancelEdit}
             />
           ) : (
-            <p className="text-sm font-normal text-slate-300 break-words">
+            <p className="text-sm font-normal text-slate-600 break-words">
               {message.content}
               {message.isEdited ? (
-                <span className="ml-1 text-[10px] text-slate-500">(edited)</span>
+                <span className="ml-1 text-[10px] text-slate-400">(edited)</span>
               ) : null}
             </p>
           )}
@@ -120,23 +121,24 @@ export const MessageItem: React.FC<MessageItemProps> = React.memo(function Messa
   // Full mode — avatar + name + timestamp
   return (
     <div
+      data-message-id={message.id}
       className={cn(
         "group relative flex items-start gap-4 px-4 pt-4 pb-0.5",
         "hover:bg-white/[0.02]"
       )}
     >
       {/* Avatar */}
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#5865F2] text-xs font-semibold text-white mt-0.5">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-500 text-xs font-semibold text-white mt-0.5">
         {initials}
       </div>
 
       {/* Content */}
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
-          <span className="text-sm font-semibold text-white hover:underline cursor-pointer">
+          <span className="text-sm font-semibold text-slate-800 hover:underline cursor-pointer">
             {message.authorName}
           </span>
-          <span className="text-[11px] font-medium text-slate-500">
+          <span className="text-[11px] font-medium text-slate-400">
             {formatTimestamp(message.timestamp)}
           </span>
         </div>
@@ -150,10 +152,10 @@ export const MessageItem: React.FC<MessageItemProps> = React.memo(function Messa
             onCancel={handleCancelEdit}
           />
         ) : (
-          <p className="mt-0.5 text-sm font-normal text-slate-300 break-words">
+          <p className="mt-0.5 text-sm font-normal text-slate-600 break-words">
             {message.content}
             {message.isEdited ? (
-              <span className="ml-1 text-[10px] text-slate-500">(edited)</span>
+              <span className="ml-1 text-[10px] text-slate-400">(edited)</span>
             ) : null}
           </p>
         )}
@@ -182,7 +184,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onEdit, onDelete }) => (
     className={cn(
       "absolute -top-3 right-4",
       "flex items-center gap-0.5",
-      "rounded-md bg-[#2B2D31] border border-white/10",
+      "rounded-md bg-[var(--color-surface-overlay)] border border-slate-200",
       "opacity-0 group-hover:opacity-100",
       "transition-opacity duration-100",
       "shadow-lg"
@@ -195,7 +197,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onEdit, onDelete }) => (
         "flex h-7 w-7 items-center justify-center",
         "text-slate-400 rounded-l-md",
         "transition-colors duration-100",
-        "hover:bg-white/10 hover:text-slate-200"
+        "hover:bg-slate-100 hover:text-slate-800"
       )}
       aria-label="Edit message"
     >
@@ -240,10 +242,10 @@ const EditRow: React.FC<EditRowProps> = ({
       onKeyDown={onKeyDown}
       className={cn(
         "flex-1 px-3 py-1.5",
-        "text-sm font-medium text-slate-200",
-        "bg-[#383A40] rounded-md",
-        "border border-white/10 outline-none",
-        "focus:border-[#5865F2]"
+        "text-sm font-medium text-slate-700",
+        "bg-[var(--color-surface-input)] rounded-md",
+        "border border-slate-200 outline-none",
+        "focus:border-indigo-500"
       )}
       autoFocus
     />
@@ -258,7 +260,7 @@ const EditRow: React.FC<EditRowProps> = ({
     <button
       type="button"
       onClick={onCancel}
-      className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-white/10 transition-colors duration-100"
+      className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 transition-colors duration-100"
       aria-label="Cancel edit"
     >
       <X className="h-4 w-4" />

@@ -88,10 +88,10 @@ export const VoiceCallOverlay: React.FC<VoiceCallOverlayProps> = ({
           </div>
 
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-white truncate">
+            <p className="text-sm font-semibold text-slate-800 truncate">
               {recipientName}
             </p>
-            <p className="text-xs text-white/70">{statusText}</p>
+            <p className="text-xs text-slate-800/70">{statusText}</p>
           </div>
         </div>
 
@@ -106,7 +106,7 @@ export const VoiceCallOverlay: React.FC<VoiceCallOverlayProps> = ({
               "rounded-full transition-all duration-150",
               isMuted
                 ? "bg-white/20 text-rose-300"
-                : "bg-white/10 text-white hover:bg-white/20"
+                : "bg-indigo-50 text-slate-800 hover:bg-slate-200"
             )}
             aria-label={isMuted ? "Unmute" : "Mute"}
           >
@@ -129,7 +129,7 @@ export const VoiceCallOverlay: React.FC<VoiceCallOverlayProps> = ({
             )}
             aria-label="Hang up"
           >
-            <PhoneOff className="h-4 w-4 text-white" />
+            <PhoneOff className="h-4 w-4 text-slate-800" />
           </button>
         </div>
       </div>
