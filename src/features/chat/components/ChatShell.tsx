@@ -5,6 +5,7 @@ import { useChannels } from "../hooks/useChannels"
 import { useMembers } from "../hooks/useMembers"
 import { useFriends } from "../hooks/useFriends"
 import { useDirectMessages } from "../hooks/useDirectMessages"
+import { useVoiceCall } from "../hooks/useVoiceCall"
 import { ServerSidebar } from "./ServerSidebar"
 import { ChannelSidebar } from "./ChannelSidebar"
 import { DMSidebar } from "./DMSidebar"
@@ -13,6 +14,8 @@ import { ChatView } from "./ChatView"
 import { MemberSidebar } from "./MemberSidebar"
 import { FriendsDashboard } from "./FriendsDashboard"
 import { DMChatView } from "./DMChatView"
+import { GlobalCallWidget } from "./GlobalCallWidget"
+import { IncomingCallModal } from "./IncomingCallModal"
 
 export const ChatShell: React.FC = () => {
   const { token, user } = useAuth()
@@ -47,6 +50,9 @@ export const ChatShell: React.FC = () => {
     isLoading: isDMLoading,
     currentNumericUserId,
   } = useDirectMessages(token, user?.email)
+
+  // ── Voice call (hoisted for global persistence) ──
+  const voiceCall = useVoiceCall(token)
 
   // ── View mode ──
   const [isHomeView, setIsHomeView] = useState(false)
@@ -173,6 +179,8 @@ export const ChatShell: React.FC = () => {
           conversation={selectedConversation}
           token={token}
           currentNumericUserId={currentNumericUserId}
+          callState={voiceCall.callState}
+          onStartCall={voiceCall.startCall}
           onOpenMobileSidebar={openMobileSidebar}
         />
       )
@@ -272,6 +280,27 @@ export const ChatShell: React.FC = () => {
 
       {/* ── Main content ── */}
       {renderMainContent()}
+
+      {/* ── Global voice call widget (persists across routes) ── */}
+      {(voiceCall.callState === "calling" || voiceCall.callState === "connected") && voiceCall.peerName ? (
+        <GlobalCallWidget
+          callState={voiceCall.callState}
+          peerName={voiceCall.peerName}
+          localStream={voiceCall.localStream}
+          remoteStream={voiceCall.remoteStream}
+          callError={voiceCall.callError}
+          onHangUp={voiceCall.hangUp}
+        />
+      ) : null}
+
+      {/* ── Incoming call modal (global overlay) ── */}
+      {voiceCall.callState === "incoming" && voiceCall.incomingCall ? (
+        <IncomingCallModal
+          callerName={voiceCall.incomingCall.callerName}
+          onAccept={voiceCall.acceptCall}
+          onReject={voiceCall.rejectCall}
+        />
+      ) : null}
     </div>
   )
 }

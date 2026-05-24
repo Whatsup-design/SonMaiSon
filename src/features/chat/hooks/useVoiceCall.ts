@@ -14,10 +14,11 @@ interface UseVoiceCallReturn {
   callState: CallState
   callError: string | null
   incomingCall: IncomingCallInfo | null
+  peerName: string | null
   localStream: MediaStream | null
   remoteStream: MediaStream | null
   /** Start a voice call (caller side) */
-  startCall: (conversationId: string) => Promise<void>
+  startCall: (conversationId: string, peerName: string) => Promise<void>
   /** Accept an incoming call (receiver side) */
   acceptCall: () => Promise<void>
   /** Reject an incoming call (receiver side) */
@@ -41,6 +42,7 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
   const [callState, setCallState] = useState<CallState>("idle")
   const [callError, setCallError] = useState<string | null>(null)
   const [incomingCall, setIncomingCall] = useState<IncomingCallInfo | null>(null)
+  const [peerName, setPeerName] = useState<string | null>(null)
 
   const callIdRef = useRef<string | null>(null)
   const conversationIdRef = useRef<string | null>(null)
@@ -48,6 +50,8 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
   const callStateRef = useRef<CallState>("idle")
 
   const webrtc = useWebRTC()
+  const webrtcRef = useRef(webrtc)
+  webrtcRef.current = webrtc
 
   // Keep ref in sync with state so socket handlers can read current value
   useEffect(() => {
@@ -70,21 +74,25 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
 
   const endCall = useCallback(() => {
     clearCallingTimeout()
-    webrtc.cleanup()
+    webrtcRef.current.cleanup()
     callIdRef.current = null
     conversationIdRef.current = null
     setCallState("idle")
     setIncomingCall(null)
-  }, [webrtc, clearCallingTimeout])
+    setPeerName(null)
+  }, [clearCallingTimeout])
+
+  const endCallRef = useRef(endCall)
+  endCallRef.current = endCall
 
   // ── Start call (caller side) ──
   const startCall = useCallback(
-    async (conversationId: string) => {
+    async (conversationId: string, name: string) => {
       if (!token || callState !== "idle") return
       setCallError(null)
 
       try {
-        await webrtc.requestMic()
+        await webrtcRef.current.requestMic()
       } catch (err) {
         setCallError(getMicErrorMessage(err))
         return
@@ -93,12 +101,13 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
       conversationIdRef.current = conversationId
       callStateRef.current = "calling"  // sync ref BEFORE emit to block self-invite
       setCallState("calling")
+      setPeerName(name)
 
       // Timeout: if no response in 30s, auto-cleanup
       clearCallingTimeout()
       callingTimeoutRef.current = setTimeout(() => {
         setCallError("No answer — call timed out")
-        webrtc.cleanup()
+        webrtcRef.current.cleanup()
         callIdRef.current = null
         conversationIdRef.current = null
         setCallState("idle")
@@ -107,7 +116,7 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
       const socket = getSocket(token)
       socket.emit("call:invite", { conversationId })
     },
-    [token, callState, webrtc, clearCallingTimeout]
+    [token, callState, clearCallingTimeout]
   )
 
   // ── Accept incoming call (receiver side) ──
@@ -116,7 +125,7 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
     setCallError(null)
 
     try {
-      await webrtc.requestMic()
+      await webrtcRef.current.requestMic()
     } catch (err) {
       setCallError(getMicErrorMessage(err))
       setIncomingCall(null)
@@ -130,10 +139,10 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
     setCallState("connected")
 
     // Init peer connection (receiver will wait for offer)
-    webrtc.initPeerConnection()
+    webrtcRef.current.initPeerConnection()
 
     // Set up ICE candidate forwarding
-    webrtc.setOnIceCandidate((candidate) => {
+    webrtcRef.current.setOnIceCandidate((candidate) => {
       const socket = getSocket(token)
       socket.emit("call:webrtc:ice-candidate", {
         conversationId: conversationIdRef.current,
@@ -147,7 +156,7 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
       conversationId: incomingCall.conversationId,
       callId: incomingCall.callId,
     })
-  }, [token, incomingCall, webrtc])
+  }, [token, incomingCall])
 
   // ── Reject incoming call ──
   const rejectCall = useCallback(() => {
@@ -193,12 +202,14 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
       // Ignore if we are the caller (backend broadcasts to both users)
       if (callStateRef.current !== "idle") return
 
+      const name = data.caller.displayName || data.caller.username || "Unknown"
       callIdRef.current = data.callId
       conversationIdRef.current = data.conversationId
+      setPeerName(name)
       setIncomingCall({
         callId: data.callId,
         conversationId: data.conversationId,
-        callerName: data.caller.displayName || data.caller.username || "Unknown",
+        callerName: name,
       })
       setCallState("incoming")
     }
@@ -209,10 +220,10 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
       setCallState("connected")
 
       // Create peer connection (caller side)
-      webrtc.initPeerConnection()
+      webrtcRef.current.initPeerConnection()
 
       // Set up ICE forwarding
-      webrtc.setOnIceCandidate((candidate) => {
+      webrtcRef.current.setOnIceCandidate((candidate) => {
         socket.emit("call:webrtc:ice-candidate", {
           conversationId: conversationIdRef.current,
           callId: callIdRef.current,
@@ -222,7 +233,7 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
 
       // Create and send offer
       try {
-        const offer = await webrtc.createOffer()
+        const offer = await webrtcRef.current.createOffer()
         socket.emit("call:webrtc:offer", {
           conversationId: conversationIdRef.current,
           callId: callIdRef.current,
@@ -231,7 +242,7 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
       } catch (err) {
         console.error("[VoiceCall] Failed to create offer:", err)
         setCallError("Failed to establish connection")
-        endCall()
+        endCallRef.current()
       }
     }
 
@@ -242,7 +253,7 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
       offer: RTCSessionDescriptionInit
     }) => {
       try {
-        const answer = await webrtc.handleOffer(data.offer)
+        const answer = await webrtcRef.current.handleOffer(data.offer)
         socket.emit("call:webrtc:answer", {
           conversationId: data.conversationId,
           callId: data.callId,
@@ -251,7 +262,7 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
       } catch (err) {
         console.error("[VoiceCall] Failed to handle offer:", err)
         setCallError("Failed to establish connection")
-        endCall()
+        endCallRef.current()
       }
     }
 
@@ -262,7 +273,7 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
       answer: RTCSessionDescriptionInit
     }) => {
       try {
-        await webrtc.handleAnswer(data.answer)
+        await webrtcRef.current.handleAnswer(data.answer)
       } catch (err) {
         console.error("[VoiceCall] Failed to handle answer:", err)
       }
@@ -274,24 +285,24 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
       callId: string
       candidate: RTCIceCandidateInit
     }) => {
-      webrtc.addIceCandidate(data.candidate)
+      webrtcRef.current.addIceCandidate(data.candidate)
     }
 
     // Call rejected
     const handleRejected = () => {
       setCallError("Call was rejected")
-      endCall()
+      endCallRef.current()
     }
 
     // Call ended by remote
     const handleEnded = () => {
-      endCall()
+      endCallRef.current()
     }
 
     // Call error
     const handleError = (data: { code: string; message: string }) => {
       setCallError(data.message)
-      endCall()
+      endCallRef.current()
     }
 
     socket.on("call:invited", handleInvited)
@@ -313,7 +324,8 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
       socket.off("call:ended", handleEnded)
       socket.off("call:error", handleError)
     }
-  }, [token, webrtc, endCall])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, clearCallingTimeout])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -328,6 +340,7 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
     callState,
     callError,
     incomingCall,
+    peerName,
     localStream: webrtc.localStream,
     remoteStream: webrtc.remoteStream,
     startCall,
