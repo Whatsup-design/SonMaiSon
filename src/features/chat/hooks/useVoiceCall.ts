@@ -45,8 +45,14 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
   const callIdRef = useRef<string | null>(null)
   const conversationIdRef = useRef<string | null>(null)
   const callingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const callStateRef = useRef<CallState>("idle")
 
   const webrtc = useWebRTC()
+
+  // Keep ref in sync with state so socket handlers can read current value
+  useEffect(() => {
+    callStateRef.current = callState
+  }, [callState])
 
   // Auto-clear error after 5s
   useEffect(() => {
@@ -85,6 +91,7 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
       }
 
       conversationIdRef.current = conversationId
+      callStateRef.current = "calling"  // sync ref BEFORE emit to block self-invite
       setCallState("calling")
 
       // Timeout: if no response in 30s, auto-cleanup
@@ -183,6 +190,9 @@ export function useVoiceCall(token: string | null): UseVoiceCallReturn {
       caller: { id: number; username: string; displayName: string }
       createdAt: string
     }) => {
+      // Ignore if we are the caller (backend broadcasts to both users)
+      if (callStateRef.current !== "idle") return
+
       callIdRef.current = data.callId
       conversationIdRef.current = data.conversationId
       setIncomingCall({
