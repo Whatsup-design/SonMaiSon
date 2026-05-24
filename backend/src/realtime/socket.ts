@@ -184,29 +184,39 @@ export const createSocketServer = (httpServer: HttpServer) => {
         const callerParticipant = callContext.participants.find(
           (participant) => participant.user_id === callContext.currentUser.id,
         );
-        const callPayload = {
+        const caller = callerParticipant
+          ? formatCallUser(callerParticipant)
+          : {
+              userId: callContext.currentUser.id,
+              authId: callContext.currentUser.auth_id,
+              username: callContext.currentUser.username,
+              displayName: callContext.currentUser.display_name ?? null,
+              avatarUrl: callContext.currentUser.avatar_url ?? null,
+            };
+        const recipients = callContext.recipientParticipants.map(formatCallUser);
+        const baseCallPayload = {
           callId,
           conversationId,
           callType: 'voice',
-          caller: callerParticipant
-            ? formatCallUser(callerParticipant)
-            : {
-                userId: callContext.currentUser.id,
-                authId: callContext.currentUser.auth_id,
-                username: callContext.currentUser.username,
-                displayName: callContext.currentUser.display_name ?? null,
-                avatarUrl: callContext.currentUser.avatar_url ?? null,
-              },
+          caller,
+          recipients,
           createdAt: new Date().toISOString(),
         };
 
-        authenticatedSocket.emit('call:invited', callPayload);
+        authenticatedSocket.emit('call:invited', {
+          ...baseCallPayload,
+          direction: 'outgoing',
+          callee: recipients[0] ?? null,
+        });
 
         for (const participant of callContext.recipientParticipants) {
           const user = getSingleRelation(participant.user);
 
           if (user?.auth_id) {
-            io.to(getUserRoom(user.auth_id)).emit('call:incoming', callPayload);
+            io.to(getUserRoom(user.auth_id)).emit('call:incoming', {
+              ...baseCallPayload,
+              direction: 'incoming',
+            });
           }
         }
       } catch (error) {
