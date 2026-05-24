@@ -4,8 +4,12 @@ import { supabase } from '../../lib/supabase';
 import { AppError } from '../../utils/AppError';
 import {
   assertGuildMember,
+  formatGuild,
+  formatGuildChannel,
+  formatGuildMember,
+  Guild,
+  GuildChannel,
   getAppUserByAuthId,
-  getSingleRelation,
   GuildMember,
   throwSupabaseError,
 } from './guildShared';
@@ -68,14 +72,8 @@ export const getGuildDetail = async (authId: string, guildId: string) => {
   }
 
   return {
-    guild,
-    members: ((members ?? []) as GuildMember[]).map((member) => ({
-      userId: member.user_id,
-      role: member.role,
-      nickname: member.nickname,
-      joinedAt: member.joined_at,
-      user: getSingleRelation(member.user),
-    })),
-    channels: channels ?? [],
+    guild: formatGuild(guild as Guild),
+    members: ((members ?? []) as GuildMember[]).map(formatGuildMember),
+    channels: ((channels ?? []) as GuildChannel[]).map(formatGuildChannel),
   };
 };

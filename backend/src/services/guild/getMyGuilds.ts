@@ -1,8 +1,8 @@
 import { supabase } from '../../lib/supabase';
 import {
+  formatGuild,
   getAppUserByAuthId,
-  getSingleRelation,
-  GuildMember,
+  Guild,
   throwSupabaseError,
 } from './guildShared';
 
@@ -12,21 +12,7 @@ type GuildRow = {
   role: string;
   nickname: string | null;
   joined_at: string;
-  guild?: {
-    id: string;
-    name: string;
-    icon_url: string | null;
-    owner_id: number;
-    created_at: string;
-    updated_at: string;
-  } | {
-    id: string;
-    name: string;
-    icon_url: string | null;
-    owner_id: number;
-    created_at: string;
-    updated_at: string;
-  }[] | null;
+  guild?: Guild | Guild[] | null;
 };
 
 export const getMyGuilds = async (authId: string) => {
@@ -59,8 +45,9 @@ export const getMyGuilds = async (authId: string) => {
   }
 
   return ((data ?? []) as GuildRow[]).map((membership) => ({
-    guild: getSingleRelation(membership.guild),
+    guild: formatGuild(membership.guild),
     membership: {
+      guildId: membership.guild_id,
       userId: membership.user_id,
       role: membership.role,
       nickname: membership.nickname,

@@ -1,5 +1,11 @@
 import { supabase } from '../../lib/supabase';
-import { assertGuildMember, getAppUserByAuthId, throwSupabaseError } from './guildShared';
+import {
+  assertGuildMember,
+  formatGuildChannel,
+  getAppUserByAuthId,
+  GuildChannel,
+  throwSupabaseError,
+} from './guildShared';
 
 export const getGuildChannels = async (authId: string, guildId: string) => {
   const currentUser = await getAppUserByAuthId(authId);
@@ -16,5 +22,5 @@ export const getGuildChannels = async (authId: string, guildId: string) => {
     throwSupabaseError(error.message, error);
   }
 
-  return data ?? [];
+  return ((data ?? []) as GuildChannel[]).map(formatGuildChannel);
 };

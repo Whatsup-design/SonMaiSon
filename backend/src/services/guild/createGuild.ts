@@ -1,5 +1,12 @@
 import { supabase } from '../../lib/supabase';
-import { getAppUserByAuthId, throwSupabaseError } from './guildShared';
+import {
+  formatGuild,
+  formatGuildChannel,
+  Guild,
+  GuildChannel,
+  getAppUserByAuthId,
+  throwSupabaseError,
+} from './guildShared';
 
 type CreateGuildInput = {
   name: string;
@@ -27,14 +34,7 @@ export const createGuild = async (
     throwSupabaseError(guildError?.message ?? 'Failed to create guild', guildError);
   }
 
-  const createdGuild = guild as {
-    id: string;
-    name: string;
-    icon_url: string | null;
-    owner_id: number;
-    created_at: string;
-    updated_at: string;
-  };
+  const createdGuild = guild as Guild;
   const guildId = createdGuild.id;
 
   const { error: memberError } = await supabase.from('guild_members').insert({
@@ -69,11 +69,13 @@ export const createGuild = async (
   }
 
   return {
-    guild: createdGuild,
+    guild: formatGuild(createdGuild),
     membership: {
+      guildId,
       userId: currentUser.id,
       role: 'owner',
+      nickname: currentUser.display_name ?? currentUser.username,
     },
-    defaultChannel: channel,
+    defaultChannel: formatGuildChannel(channel as GuildChannel),
   };
 };

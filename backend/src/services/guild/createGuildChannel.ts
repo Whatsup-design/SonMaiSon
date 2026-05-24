@@ -1,5 +1,11 @@
 import { supabase } from '../../lib/supabase';
-import { assertGuildManager, getAppUserByAuthId, throwSupabaseError } from './guildShared';
+import {
+  assertGuildManager,
+  formatGuildChannel,
+  getAppUserByAuthId,
+  GuildChannel,
+  throwSupabaseError,
+} from './guildShared';
 
 type CreateGuildChannelInput = {
   name: string;
@@ -33,5 +39,5 @@ export const createGuildChannel = async (
     throwSupabaseError(error?.message ?? 'Failed to create guild channel', error);
   }
 
-  return data;
+  return formatGuildChannel(data as GuildChannel);
 };

@@ -15,6 +15,15 @@ export type AppUser = {
 
 export type GuildMemberRole = 'owner' | 'admin' | 'member';
 
+export type Guild = {
+  id: string;
+  name: string;
+  icon_url: string | null;
+  owner_id: number;
+  created_at: string;
+  updated_at: string;
+};
+
 export type GuildMember = {
   guild_id: string;
   user_id: number;
@@ -164,4 +173,59 @@ export const formatChannelMessage = (message: ChannelMessage) => ({
   createdAt: message.created_at,
   editedAt: message.edited_at,
   author: getSingleRelation(message.author),
+});
+
+export const formatUser = (user?: AppUser | AppUser[] | null) => {
+  const appUser = getSingleRelation(user);
+
+  if (!appUser) {
+    return null;
+  }
+
+  return {
+    id: appUser.id,
+    authId: appUser.auth_id,
+    email: appUser.email,
+    username: appUser.username,
+    displayName: appUser.display_name ?? null,
+    avatarUrl: appUser.avatar_url ?? null,
+    status: appUser.status ?? null,
+  };
+};
+
+export const formatGuild = (guild?: Guild | Guild[] | null) => {
+  const guildRow = getSingleRelation(guild);
+
+  if (!guildRow) {
+    return null;
+  }
+
+  return {
+    id: guildRow.id,
+    name: guildRow.name,
+    iconUrl: guildRow.icon_url,
+    ownerId: guildRow.owner_id,
+    createdAt: guildRow.created_at,
+    updatedAt: guildRow.updated_at,
+  };
+};
+
+export const formatGuildMember = (member: GuildMember) => ({
+  guildId: member.guild_id,
+  userId: member.user_id,
+  role: member.role,
+  nickname: member.nickname,
+  joinedAt: member.joined_at,
+  user: formatUser(member.user),
+});
+
+export const formatGuildChannel = (channel: GuildChannel) => ({
+  id: channel.id,
+  guildId: channel.guild_id,
+  name: channel.name,
+  type: channel.type,
+  position: channel.position,
+  createdBy: channel.created_by,
+  createdAt: channel.created_at,
+  updatedAt: channel.updated_at,
 });
