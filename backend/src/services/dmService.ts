@@ -273,6 +273,21 @@ export const getDmConversations = async (authId: string) => {
   });
 };
 
+export const getDmConversationIdsByAuthId = async (authId: string) => {
+  const currentUser = await getAppUserByAuthId(authId);
+
+  const { data, error } = await supabase
+    .from('dm_participants')
+    .select('conversation_id')
+    .eq('user_id', currentUser.id);
+
+  if (error) {
+    throwSupabaseError(error.message, error);
+  }
+
+  return (data ?? []).map((membership) => membership.conversation_id as string);
+};
+
 export const createOrGetDmConversation = async (
   authId: string,
   targetUserId: number,

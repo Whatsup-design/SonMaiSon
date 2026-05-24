@@ -20,6 +20,7 @@ import {
   assertDmParticipantByAuthId,
   DmParticipant,
   getAppUserByAuthId,
+  getDmConversationIdsByAuthId,
   getDmCallContext,
   getSingleRelation,
   sendDmMessage,
@@ -230,6 +231,26 @@ export const createSocketServer = (httpServer: HttpServer) => {
     authenticatedSocket.join(getUserRoom(authenticatedSocket.data.authId));
     authenticatedSocket.join(getAppUserRoom(authenticatedSocket.data.appUserId));
 
+    getDmConversationIdsByAuthId(authenticatedSocket.data.authId)
+      .then((conversationIds) => {
+        for (const conversationId of conversationIds) {
+          authenticatedSocket.join(`dm:${conversationId}`);
+        }
+
+        console.log('Socket auto-joined DM rooms', {
+          socketId: authenticatedSocket.id,
+          userId: authenticatedSocket.data.appUserId,
+          count: conversationIds.length,
+        });
+      })
+      .catch((error) => {
+        console.error('Failed to auto-join DM rooms', {
+          socketId: authenticatedSocket.id,
+          userId: authenticatedSocket.data.appUserId,
+          error,
+        });
+      });
+
     authenticatedSocket.emit('connection:ready', {
       socketId: authenticatedSocket.id,
       authId: authenticatedSocket.data.authId,
@@ -240,6 +261,30 @@ export const createSocketServer = (httpServer: HttpServer) => {
       authenticatedSocket.emit('pong:server', {
         timestamp: new Date().toISOString(),
       });
+    });
+
+    authenticatedSocket.on('socket:debug', async (_payload, ack) => {
+      const userRoom = getUserRoom(authenticatedSocket.data.authId);
+      const appUserRoom = getAppUserRoom(authenticatedSocket.data.appUserId);
+      const userRoomSockets = await io.in(userRoom).fetchSockets();
+      const appUserRoomSockets = await io.in(appUserRoom).fetchSockets();
+
+      const debugPayload = {
+        socketId: authenticatedSocket.id,
+        authId: authenticatedSocket.data.authId,
+        userId: authenticatedSocket.data.appUserId,
+        rooms: [...authenticatedSocket.rooms],
+        userRoom,
+        userRoomSocketCount: userRoomSockets.length,
+        appUserRoom,
+        appUserRoomSocketCount: appUserRoomSockets.length,
+      };
+
+      emitSocketAck(ack, {
+        success: true,
+        data: debugPayload,
+      });
+      authenticatedSocket.emit('socket:debug:result', debugPayload);
     });
 
     authenticatedSocket.on('dm:join', async (payload) => {
