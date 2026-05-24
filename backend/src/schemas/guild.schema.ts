@@ -1,10 +1,18 @@
 import { z } from 'zod';
 
+const optionalUrlSchema = z.preprocess((value) => {
+  if (value === null || value === '') {
+    return undefined;
+  }
+
+  return value;
+}, z.url().optional());
+
 export const createGuildSchema = z.object({
   body: z
     .object({
       name: z.string().trim().min(1).max(80),
-      iconUrl: z.url().optional(),
+      iconUrl: optionalUrlSchema,
     })
     .strict(),
 });
