@@ -326,7 +326,8 @@ export const createSocketServer = (httpServer: HttpServer) => {
 
     authenticatedSocket.on('call:invite', async (payload, ack) => {
       try {
-        const { conversationId } = dmCallInvitePayloadSchema.parse(payload);
+        const { conversationId, callType } =
+          dmCallInvitePayloadSchema.parse(payload);
         const callId = randomUUID();
         const callContext = await getDmCallContext(
           authenticatedSocket.data.authId,
@@ -348,7 +349,7 @@ export const createSocketServer = (httpServer: HttpServer) => {
         const baseCallPayload = {
           callId,
           conversationId,
-          callType: 'voice',
+          callType,
           caller,
           recipients,
           createdAt: new Date().toISOString(),

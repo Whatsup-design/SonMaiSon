@@ -53,6 +53,7 @@ export const dmSendMessagePayloadSchema = z
 export const dmCallInvitePayloadSchema = z
   .object({
     conversationId: z.uuid(),
+    callType: z.enum(['voice', 'video']).default('voice'),
   })
   .strict();
 
