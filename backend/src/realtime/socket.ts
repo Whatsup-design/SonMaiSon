@@ -36,6 +36,12 @@ type AuthenticatedSocket = Socket & {
   };
 };
 
+type SocketAck = (response: {
+  success: boolean;
+  data?: unknown;
+  error?: ReturnType<typeof getErrorPayload>;
+}) => void;
+
 const getSocketToken = (socket: Socket) => {
   const authToken = socket.handshake.auth?.token;
 
@@ -105,6 +111,15 @@ const getRecipientUserRooms = (participants: DmParticipant[]) => {
   }
 
   return [...rooms];
+};
+
+const emitSocketAck = (
+  ack: unknown,
+  response: Parameters<SocketAck>[0],
+) => {
+  if (typeof ack === 'function') {
+    (ack as SocketAck)(response);
+  }
 };
 
 export const createSocketServer = (httpServer: HttpServer) => {
@@ -241,7 +256,7 @@ export const createSocketServer = (httpServer: HttpServer) => {
       }
     });
 
-    authenticatedSocket.on('call:invite', async (payload) => {
+    authenticatedSocket.on('call:invite', async (payload, ack) => {
       try {
         const { conversationId } = dmCallInvitePayloadSchema.parse(payload);
         const callId = randomUUID();
@@ -270,6 +285,33 @@ export const createSocketServer = (httpServer: HttpServer) => {
           recipients,
           createdAt: new Date().toISOString(),
         };
+        const invitedPayload = {
+          ...baseCallPayload,
+          direction: 'outgoing',
+          callee: recipients[0] ?? null,
+          delivery: {
+            recipientCount: callContext.recipientParticipants.length,
+            onlineRecipientSocketCount: null,
+            status: 'pending',
+          },
+        };
+
+        emitSocketAck(ack, {
+          success: true,
+          data: invitedPayload,
+        });
+        authenticatedSocket.emit('call:invited', invitedPayload);
+
+        emitToCallRecipients(
+          conversationId,
+          callContext.recipientParticipants,
+          'call:incoming',
+          {
+            ...baseCallPayload,
+            direction: 'incoming',
+          },
+        );
+
         const delivery = await getCallDeliveryState(
           conversationId,
           callContext.recipientParticipants,
@@ -283,24 +325,19 @@ export const createSocketServer = (httpServer: HttpServer) => {
           onlineRecipientSocketCount: delivery.onlineRecipientSocketCount,
         });
 
-        authenticatedSocket.emit('call:invited', {
-          ...baseCallPayload,
-          direction: 'outgoing',
-          callee: recipients[0] ?? null,
+        authenticatedSocket.emit('call:delivery', {
+          callId,
+          conversationId,
           delivery,
         });
-
-        emitToCallRecipients(
-          conversationId,
-          callContext.recipientParticipants,
-          'call:incoming',
-          {
-            ...baseCallPayload,
-            direction: 'incoming',
-          },
-        );
       } catch (error) {
-        authenticatedSocket.emit('call:error', getErrorPayload(error));
+        const errorPayload = getErrorPayload(error);
+
+        emitSocketAck(ack, {
+          success: false,
+          error: errorPayload,
+        });
+        authenticatedSocket.emit('call:error', errorPayload);
       }
     });
 
