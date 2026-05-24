@@ -1,56 +1,15 @@
-Fix the DM voice call socket emit flow.
+Implement DM message search for the currently opened conversation only. Add a search icon in the DM conversation header. When the user clicks it, show a small search input. Use the active conversationId from the currently opened DM. Do not search across all DMs.
 
-Use exact event name: "call:invite". Do not use "call:onvite" or "call:invited" when starting a call.
+Use backend endpoint: GET /dm/conversations/:conversationId/messages/search?q=<keyword>&limit=20
 
-When caller clicks call button, emit "call:invite" with acknowledgement callback:
+Send header: Authorization: Bearer <accessToken>
 
-socket.emit("call:invite", { conversationId }, (ack) => {
-  console.log("[Call] invite ack", ack);
+Example request: GET /dm/conversations/49d22538-a03b-4ebc-a131-b8794defb2c2/messages/search?q=hello&limit=20
 
-  if (!ack?.success) {
-    const message = ack?.error?.message ?? "Failed to start call";
-    console.error("[Call] invite failed", ack?.error);
-    showError(message);
-    cleanupCallState();
-    return;
-  }
+Search behavior: only search when the trimmed query has at least 1 character. Debounce input by around 300ms. Use encodeURIComponent(query) when building the URL. Show loading while searching. Show returned messages in a search results panel. If the query is cleared, clear results and loading state. If the user switches to another DM conversation, clear the search query and results. If backend returns empty data, show “No messages found”.
 
-  const payload = ack.data;
-  setCallId(payload.callId);
-  setCallState("calling");
-  setCallee(payload.callee);
-});
+Expected response: response.data.data is an array of messages. Each message has id, conversationId, authorId, content, createdAt, editedAt, and author.
 
-Also still listen to backend events:
+Do not replace the main message list with search results. If user clicks a search result, try to scroll to that message if it already exists in the loaded message list. If it is not loaded, show the result preview and optionally handle loading around that message later.
 
-socket.on("call:invited", (payload) => {
-  console.log("[Call] invited", payload);
-  setCallId(payload.callId);
-  setCallState("calling");
-  setCallee(payload.callee);
-});
-
-socket.on("call:delivery", (payload) => {
-  console.log("[Call] delivery", payload);
-  // If payload.delivery.onlineRecipientSocketCount is 0,
-  // backend did not see receiver online.
-});
-
-socket.on("call:incoming", (payload) => {
-  console.log("[Call] incoming", payload);
-  setIncomingCall(payload);
-  openIncomingCallModal();
-});
-
-socket.on("call:error", (error) => {
-  console.error("[Call] error", error);
-  showError(error.message);
-  cleanupCallState();
-});
-
-Important:
-- Caller emits "call:invite".
-- Caller receives ack and "call:invited".
-- Receiver receives "call:incoming".
-- If ack.success is false, backend rejected the call invite and frontend must show ack.error.message.
-- If ack.success is true but receiver sees nothing, check "call:delivery".
+Important: always use the active conversation id. Do not call the endpoint without a valid conversation id. Do not search only from local frontend messages, because local state may contain only the latest messages. Show backend error message from error.response.data.message if request fails.

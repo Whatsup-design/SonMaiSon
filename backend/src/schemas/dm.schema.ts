@@ -23,6 +23,20 @@ export const getDmMessagesSchema = z.object({
     .optional(),
 });
 
+export const searchDmMessagesSchema = z.object({
+  params: z
+    .object({
+      conversationId: z.uuid(),
+    })
+    .strict(),
+  query: z
+    .object({
+      q: z.string().trim().min(1).max(120),
+      limit: z.coerce.number().int().min(1).max(50).default(20),
+    })
+    .strict(),
+});
+
 export const dmJoinPayloadSchema = z
   .object({
     conversationId: z.uuid(),

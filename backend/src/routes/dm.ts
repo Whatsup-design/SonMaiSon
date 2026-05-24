@@ -3,12 +3,14 @@ import {
   createOrGetDmConversationController,
   getDmConversationsController,
   getDmMessagesController,
+  searchDmMessagesController,
 } from '../controllers/dmController';
 import { authMiddleware } from '../middleware/authMiddleware';
 import { validateRequest } from '../middleware/validateRequest';
 import {
   createDmConversationSchema,
   getDmMessagesSchema,
+  searchDmMessagesSchema,
 } from '../schemas/dm.schema';
 import { asyncHandler } from '../utils/asyncHandler';
 
@@ -22,6 +24,12 @@ router.post(
   '/conversations',
   validateRequest(createDmConversationSchema),
   asyncHandler(createOrGetDmConversationController),
+);
+
+router.get(
+  '/conversations/:conversationId/messages/search',
+  validateRequest(searchDmMessagesSchema),
+  asyncHandler(searchDmMessagesController),
 );
 
 router.get(

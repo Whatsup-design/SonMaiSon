@@ -5,6 +5,7 @@ import {
   createOrGetDmConversation,
   getDmConversations,
   getDmMessages,
+  searchDmMessages,
 } from '../services/dmService';
 import { AppError } from '../utils/AppError';
 import { sendSuccess } from '../utils/apiResponse';
@@ -66,5 +67,27 @@ export const getDmMessagesController = async (
   sendSuccess(res, {
     message: 'DM messages fetched successfully',
     data: messages,
+  });
+};
+
+export const searchDmMessagesController = async (
+  req: Request,
+  res: Response,
+) => {
+  const conversationId = String(req.params.conversationId);
+  const { q, limit = 20 } = req.query;
+
+  const messages = await searchDmMessages(getAuthId(req), conversationId, {
+    q: String(q),
+    limit: Number(limit),
+  });
+
+  sendSuccess(res, {
+    message: 'DM messages searched successfully',
+    data: messages,
+    meta: {
+      q: String(q),
+      limit: Number(limit),
+    },
   });
 };

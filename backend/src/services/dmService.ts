@@ -47,6 +47,11 @@ type GetMessagesOptions = {
   before?: string;
 };
 
+type SearchMessagesOptions = {
+  q: string;
+  limit: number;
+};
+
 export const getSingleRelation = <T>(relation?: T | T[] | null): T | null => {
   if (!relation) {
     return null;
@@ -426,6 +431,58 @@ export const getDmMessages = async (
       author: getSingleRelation(message.author),
     }))
     .reverse();
+};
+
+export const searchDmMessages = async (
+  authId: string,
+  conversationId: string,
+  { q, limit }: SearchMessagesOptions,
+) => {
+  const currentUser = await getAppUserByAuthId(authId);
+
+  await assertDmParticipant(conversationId, currentUser.id);
+
+  const { data, error } = await supabase
+    .from('dm_messages')
+    .select(
+      `
+      id,
+      conversation_id,
+      author_id,
+      content,
+      created_at,
+      edited_at,
+      deleted_at,
+      author:users (
+        id,
+        auth_id,
+        email,
+        username,
+        display_name,
+        avatar_url,
+        status
+      )
+    `,
+    )
+    .eq('conversation_id', conversationId)
+    .is('deleted_at', null)
+    .ilike('content', `%${q}%`)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    throwSupabaseError(error.message, error);
+  }
+
+  return ((data ?? []) as DmMessage[]).map((message) => ({
+    id: message.id,
+    conversationId: message.conversation_id,
+    authorId: message.author_id,
+    content: message.content,
+    createdAt: message.created_at,
+    editedAt: message.edited_at,
+    author: getSingleRelation(message.author),
+  }));
 };
 
 export const sendDmMessage = async (
