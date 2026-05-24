@@ -3,6 +3,7 @@ import { ErrorCode } from '../constants/errorCodes';
 import { HttpStatus } from '../constants/httpStatus';
 import { createGuild } from '../services/guild/createGuild';
 import { createGuildChannel } from '../services/guild/createGuildChannel';
+import { createGuildInvite } from '../services/guild/createGuildInvite';
 import { getChannelMessages } from '../services/guild/getChannelMessages';
 import { getGuildChannels } from '../services/guild/getGuildChannels';
 import { getGuildDetail } from '../services/guild/getGuildDetail';
@@ -95,6 +96,23 @@ export const leaveGuildController = async (req: Request, res: Response) => {
   sendSuccess(res, {
     message: 'Left guild successfully',
     data: result,
+  });
+};
+
+export const createGuildInviteController = async (
+  req: Request,
+  res: Response,
+) => {
+  const invite = await createGuildInvite(
+    getAuthId(req),
+    String(req.params.guildId),
+    req.body,
+  );
+
+  sendSuccess(res, {
+    statusCode: HttpStatus.CREATED,
+    message: 'Guild invite created successfully',
+    data: invite,
   });
 };
 

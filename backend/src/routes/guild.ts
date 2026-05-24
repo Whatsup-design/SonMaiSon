@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   createGuildChannelController,
   createGuildController,
+  createGuildInviteController,
   getGuildChannelsController,
   getGuildDetailController,
   getMyGuildsController,
@@ -11,6 +12,7 @@ import { authMiddleware } from '../middleware/authMiddleware';
 import { validateRequest } from '../middleware/validateRequest';
 import {
   createGuildChannelSchema,
+  createGuildInviteSchema,
   createGuildSchema,
   guildIdParamSchema,
 } from '../schemas/guild.schema';
@@ -45,6 +47,12 @@ router.post(
   '/:guildId/channels',
   validateRequest(createGuildChannelSchema),
   asyncHandler(createGuildChannelController),
+);
+
+router.post(
+  '/:guildId/invites',
+  validateRequest(createGuildInviteSchema),
+  asyncHandler(createGuildInviteController),
 );
 
 export default router;

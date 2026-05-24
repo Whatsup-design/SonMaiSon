@@ -40,6 +40,35 @@ export const createGuildChannelSchema = z.object({
     .strict(),
 });
 
+export const createGuildInviteSchema = z.object({
+  params: z
+    .object({
+      guildId: z.uuid(),
+    })
+    .strict(),
+  body: z
+    .object({
+      maxUses: z.coerce.number().int().positive().max(1000).nullable().optional(),
+      expiresInMinutes: z.coerce
+        .number()
+        .int()
+        .positive()
+        .max(60 * 24 * 30)
+        .nullable()
+        .optional(),
+    })
+    .strict()
+    .optional(),
+});
+
+export const inviteCodeParamSchema = z.object({
+  params: z
+    .object({
+      code: z.string().trim().min(4).max(64),
+    })
+    .strict(),
+});
+
 export const getChannelMessagesSchema = z.object({
   params: z
     .object({

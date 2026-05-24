@@ -11,6 +11,7 @@ import authRoutes from './routes/auth';
 import channelRoutes from './routes/channel';
 import dmRoutes from './routes/dm';
 import guildRoutes from './routes/guild';
+import inviteRoutes from './routes/invite';
 
 dotenv.config();
 
@@ -38,6 +39,7 @@ app.use('/auth', authRoutes);
 app.use('/dm', dmRoutes);
 app.use('/guilds', guildRoutes);
 app.use('/channels', channelRoutes);
+app.use('/invites', inviteRoutes);
 // app.use('/user', authMiddleware, userRoutes);
 
 app.use(notFoundHandler);
