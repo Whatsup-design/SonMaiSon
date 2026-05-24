@@ -45,10 +45,6 @@ export const validateRequest = (schema: RequestSchema): RequestHandler => {
       req.params = result.data.params as Request['params'];
     }
 
-    if (result.data.query !== undefined) {
-      req.query = result.data.query as Request['query'];
-    }
-
     next();
   };
 };
