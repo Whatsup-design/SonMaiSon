@@ -42,6 +42,11 @@ type SocketAck = (response: {
   error?: ReturnType<typeof getErrorPayload>;
 }) => void;
 
+type CallRecipientSocket = {
+  id: string;
+  emit: (eventName: string, payload: unknown) => void;
+};
+
 const getSocketToken = (socket: Socket) => {
   const authToken = socket.handshake.auth?.token;
 
@@ -158,18 +163,20 @@ export const createSocketServer = (httpServer: HttpServer) => {
 
   io.on('connection', (socket) => {
     const authenticatedSocket = socket as AuthenticatedSocket;
-    const getCallDeliveryState = async (
+    const getCallRecipientSockets = async (
       conversationId: string,
       recipientParticipants: DmParticipant[],
     ) => {
-      const socketIds = new Set<string>();
+      const recipientSockets = new Map<string, CallRecipientSocket>();
       const recipientRooms = getRecipientUserRooms(recipientParticipants);
 
       for (const room of recipientRooms) {
         const sockets = await io.in(room).fetchSockets();
 
         for (const recipientSocket of sockets) {
-          socketIds.add(recipientSocket.id);
+          if (recipientSocket.id !== authenticatedSocket.id) {
+            recipientSockets.set(recipientSocket.id, recipientSocket);
+          }
         }
       }
 
@@ -177,29 +184,45 @@ export const createSocketServer = (httpServer: HttpServer) => {
 
       for (const dmSocket of dmSockets) {
         if (dmSocket.id !== authenticatedSocket.id) {
-          socketIds.add(dmSocket.id);
+          recipientSockets.set(dmSocket.id, dmSocket);
         }
       }
 
+      return [...recipientSockets.values()];
+    };
+
+    const getCallDeliveryState = async (
+      conversationId: string,
+      recipientParticipants: DmParticipant[],
+    ) => {
+      const recipientSockets = await getCallRecipientSockets(
+        conversationId,
+        recipientParticipants,
+      );
+
       return {
         recipientCount: recipientParticipants.length,
-        onlineRecipientSocketCount: socketIds.size,
+        onlineRecipientSocketCount: recipientSockets.length,
       };
     };
-    const emitToCallRecipients = (
+    const emitToCallRecipients = async (
       conversationId: string,
       recipientParticipants: DmParticipant[],
       eventName: string,
       eventPayload: unknown,
     ) => {
-      const recipientRooms = getRecipientUserRooms(recipientParticipants);
-      let target = authenticatedSocket.to(`dm:${conversationId}`);
+      const recipientSockets = await getCallRecipientSockets(
+        conversationId,
+        recipientParticipants,
+      );
 
-      for (const room of recipientRooms) {
-        target = target.to(room);
+      for (const recipientSocket of recipientSockets) {
+        recipientSocket.emit(eventName, eventPayload);
       }
 
-      target.emit(eventName, eventPayload);
+      return {
+        deliveredSocketCount: recipientSockets.length,
+      };
     };
 
     console.log(`Socket connected: ${authenticatedSocket.id}`);
@@ -302,7 +325,7 @@ export const createSocketServer = (httpServer: HttpServer) => {
         });
         authenticatedSocket.emit('call:invited', invitedPayload);
 
-        emitToCallRecipients(
+        const incomingDelivery = await emitToCallRecipients(
           conversationId,
           callContext.recipientParticipants,
           'call:incoming',
@@ -323,12 +346,16 @@ export const createSocketServer = (httpServer: HttpServer) => {
           callerAuthId: authenticatedSocket.data.authId,
           recipientCount: delivery.recipientCount,
           onlineRecipientSocketCount: delivery.onlineRecipientSocketCount,
+          deliveredSocketCount: incomingDelivery.deliveredSocketCount,
         });
 
         authenticatedSocket.emit('call:delivery', {
           callId,
           conversationId,
-          delivery,
+          delivery: {
+            ...delivery,
+            deliveredSocketCount: incomingDelivery.deliveredSocketCount,
+          },
         });
       } catch (error) {
         const errorPayload = getErrorPayload(error);
@@ -361,7 +388,7 @@ export const createSocketServer = (httpServer: HttpServer) => {
           acceptedAt: new Date().toISOString(),
         };
 
-        emitToCallRecipients(
+        await emitToCallRecipients(
           conversationId,
           callContext.recipientParticipants,
           'call:accepted',
@@ -386,7 +413,7 @@ export const createSocketServer = (httpServer: HttpServer) => {
           rejectedAt: new Date().toISOString(),
         };
 
-        emitToCallRecipients(
+        await emitToCallRecipients(
           conversationId,
           callContext.recipientParticipants,
           'call:rejected',
@@ -411,7 +438,7 @@ export const createSocketServer = (httpServer: HttpServer) => {
           endedAt: new Date().toISOString(),
         };
 
-        emitToCallRecipients(
+        await emitToCallRecipients(
           conversationId,
           callContext.recipientParticipants,
           'call:ended',
@@ -436,7 +463,7 @@ export const createSocketServer = (httpServer: HttpServer) => {
           offer,
         };
 
-        emitToCallRecipients(
+        await emitToCallRecipients(
           conversationId,
           callContext.recipientParticipants,
           'call:webrtc:offer',
@@ -461,7 +488,7 @@ export const createSocketServer = (httpServer: HttpServer) => {
           answer,
         };
 
-        emitToCallRecipients(
+        await emitToCallRecipients(
           conversationId,
           callContext.recipientParticipants,
           'call:webrtc:answer',
@@ -486,7 +513,7 @@ export const createSocketServer = (httpServer: HttpServer) => {
           candidate,
         };
 
-        emitToCallRecipients(
+        await emitToCallRecipients(
           conversationId,
           callContext.recipientParticipants,
           'call:webrtc:ice-candidate',
