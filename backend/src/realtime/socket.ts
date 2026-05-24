@@ -88,6 +88,20 @@ const formatCallUser = (participant: DmParticipant) => {
   };
 };
 
+const getRecipientUserRooms = (participants: DmParticipant[]) => {
+  const rooms = new Set<string>();
+
+  for (const participant of participants) {
+    const user = getSingleRelation(participant.user);
+
+    if (user?.auth_id) {
+      rooms.add(getUserRoom(user.auth_id));
+    }
+  }
+
+  return [...rooms];
+};
+
 export const createSocketServer = (httpServer: HttpServer) => {
   const io = new Server(httpServer, {
     cors: {
@@ -121,6 +135,21 @@ export const createSocketServer = (httpServer: HttpServer) => {
 
   io.on('connection', (socket) => {
     const authenticatedSocket = socket as AuthenticatedSocket;
+    const emitToCallRecipients = (
+      conversationId: string,
+      recipientParticipants: DmParticipant[],
+      eventName: string,
+      eventPayload: unknown,
+    ) => {
+      const recipientRooms = getRecipientUserRooms(recipientParticipants);
+      let target = authenticatedSocket.to(`dm:${conversationId}`);
+
+      for (const room of recipientRooms) {
+        target = target.to(room);
+      }
+
+      target.emit(eventName, eventPayload);
+    };
 
     console.log(`Socket connected: ${authenticatedSocket.id}`);
 
@@ -209,16 +238,15 @@ export const createSocketServer = (httpServer: HttpServer) => {
           callee: recipients[0] ?? null,
         });
 
-        for (const participant of callContext.recipientParticipants) {
-          const user = getSingleRelation(participant.user);
-
-          if (user?.auth_id) {
-            io.to(getUserRoom(user.auth_id)).emit('call:incoming', {
-              ...baseCallPayload,
-              direction: 'incoming',
-            });
-          }
-        }
+        emitToCallRecipients(
+          conversationId,
+          callContext.recipientParticipants,
+          'call:incoming',
+          {
+            ...baseCallPayload,
+            direction: 'incoming',
+          },
+        );
       } catch (error) {
         authenticatedSocket.emit('call:error', getErrorPayload(error));
       }
@@ -244,13 +272,12 @@ export const createSocketServer = (httpServer: HttpServer) => {
           acceptedAt: new Date().toISOString(),
         };
 
-        for (const participant of callContext.recipientParticipants) {
-          const user = getSingleRelation(participant.user);
-
-          if (user?.auth_id) {
-            io.to(getUserRoom(user.auth_id)).emit('call:accepted', eventPayload);
-          }
-        }
+        emitToCallRecipients(
+          conversationId,
+          callContext.recipientParticipants,
+          'call:accepted',
+          eventPayload,
+        );
       } catch (error) {
         authenticatedSocket.emit('call:error', getErrorPayload(error));
       }
@@ -270,13 +297,12 @@ export const createSocketServer = (httpServer: HttpServer) => {
           rejectedAt: new Date().toISOString(),
         };
 
-        for (const participant of callContext.recipientParticipants) {
-          const user = getSingleRelation(participant.user);
-
-          if (user?.auth_id) {
-            io.to(getUserRoom(user.auth_id)).emit('call:rejected', eventPayload);
-          }
-        }
+        emitToCallRecipients(
+          conversationId,
+          callContext.recipientParticipants,
+          'call:rejected',
+          eventPayload,
+        );
       } catch (error) {
         authenticatedSocket.emit('call:error', getErrorPayload(error));
       }
@@ -296,13 +322,12 @@ export const createSocketServer = (httpServer: HttpServer) => {
           endedAt: new Date().toISOString(),
         };
 
-        for (const participant of callContext.recipientParticipants) {
-          const user = getSingleRelation(participant.user);
-
-          if (user?.auth_id) {
-            io.to(getUserRoom(user.auth_id)).emit('call:ended', eventPayload);
-          }
-        }
+        emitToCallRecipients(
+          conversationId,
+          callContext.recipientParticipants,
+          'call:ended',
+          eventPayload,
+        );
       } catch (error) {
         authenticatedSocket.emit('call:error', getErrorPayload(error));
       }
@@ -322,16 +347,12 @@ export const createSocketServer = (httpServer: HttpServer) => {
           offer,
         };
 
-        for (const participant of callContext.recipientParticipants) {
-          const user = getSingleRelation(participant.user);
-
-          if (user?.auth_id) {
-            io.to(getUserRoom(user.auth_id)).emit(
-              'call:webrtc:offer',
-              eventPayload,
-            );
-          }
-        }
+        emitToCallRecipients(
+          conversationId,
+          callContext.recipientParticipants,
+          'call:webrtc:offer',
+          eventPayload,
+        );
       } catch (error) {
         authenticatedSocket.emit('call:error', getErrorPayload(error));
       }
@@ -351,16 +372,12 @@ export const createSocketServer = (httpServer: HttpServer) => {
           answer,
         };
 
-        for (const participant of callContext.recipientParticipants) {
-          const user = getSingleRelation(participant.user);
-
-          if (user?.auth_id) {
-            io.to(getUserRoom(user.auth_id)).emit(
-              'call:webrtc:answer',
-              eventPayload,
-            );
-          }
-        }
+        emitToCallRecipients(
+          conversationId,
+          callContext.recipientParticipants,
+          'call:webrtc:answer',
+          eventPayload,
+        );
       } catch (error) {
         authenticatedSocket.emit('call:error', getErrorPayload(error));
       }
@@ -380,16 +397,12 @@ export const createSocketServer = (httpServer: HttpServer) => {
           candidate,
         };
 
-        for (const participant of callContext.recipientParticipants) {
-          const user = getSingleRelation(participant.user);
-
-          if (user?.auth_id) {
-            io.to(getUserRoom(user.auth_id)).emit(
-              'call:webrtc:ice-candidate',
-              eventPayload,
-            );
-          }
-        }
+        emitToCallRecipients(
+          conversationId,
+          callContext.recipientParticipants,
+          'call:webrtc:ice-candidate',
+          eventPayload,
+        );
       } catch (error) {
         authenticatedSocket.emit('call:error', getErrorPayload(error));
       }
