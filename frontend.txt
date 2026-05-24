@@ -1,5 +1,6 @@
+Build the frontend guild/group chat and DM voice call integration using the existing backend. Use VITE_API_BASE_URL from env as the backend base URL. After login, use data.session.accessToken from the backend login response as the Bearer token for every REST request and as the Socket.IO auth token: io(VITE_API_BASE_URL, { auth: { token: accessToken } }).
 
-Build the frontend guild/group chat integration using the existing backend. Use VITE_API_BASE_URL from env as the backend base URL. After login, use data.session.accessToken from the backend login response as the Bearer token for every request and as the Socket.IO auth token.
+Guild/group chat integration:
 
 Implement these API calls:
 
@@ -19,14 +20,47 @@ GET /channels/:channelId/messages?limit=50 loads channel messages.
 
 POST /channels/:channelId/messages sends a channel message as REST fallback. Body: { "content": "Hello" }. This route is limited to 10 messages per minute.
 
-Use Socket.IO for realtime chat. Connect like this: io(VITE_API_BASE_URL, { auth: { token: accessToken } }).
-
-Socket events:
+Use Socket.IO for realtime group chat.
 
 Emit channel:join with { channelId } when opening a channel.
 Listen to channel:joined.
 Emit channel:message:send with { channelId, content } when sending a message.
 Listen to channel:message:new and append the new message to the active channel messages.
 Listen to channel:error and display error.message.
-Frontend flow:
+
+Frontend guild flow:
 After login, store the access token. On app load, call GET /guilds. When user selects a guild, call GET /guilds/:guildId or GET /guilds/:guildId/channels. When user selects a channel, call GET /channels/:channelId/messages?limit=50, then emit channel:join. When user sends a message, prefer Socket.IO channel:message:send; if socket is disconnected, fallback to REST POST /channels/:channelId/messages. Do not refetch all messages after every new message; append channel:message:new to local state.
+
+DM voice call integration:
+
+This is voice call only, not video call yet. When user opens a DM conversation, make sure the socket is connected and keep the current conversationId.
+
+Add one voice call button in the DM header. When caller clicks the button, first request microphone permission with navigator.mediaDevices.getUserMedia({ audio: true, video: false }). If permission is denied, show an error and do not start the call. If permission is allowed, store the returned localStream, create call UI state as "calling", then emit call:invite with { conversationId }.
+
+Listen for call:invited. Backend returns { callId, conversationId, callType, caller, createdAt }. Store callId.
+
+Listen for call:incoming. Show an incoming call modal with caller name. Do not request microphone permission until the receiver clicks accept. If receiver clicks reject, emit call:reject with { conversationId, callId } and close the modal.
+
+If receiver clicks accept, request microphone permission with navigator.mediaDevices.getUserMedia({ audio: true, video: false }). If allowed, store localStream, emit call:accept with { conversationId, callId }, create RTCPeerConnection, add local audio tracks to the peer connection, and wait for WebRTC offer.
+
+Listen for call:accepted on the caller side. When received, create RTCPeerConnection, add local audio tracks, create offer, set local description, then emit call:webrtc:offer with { conversationId, callId, offer: peerConnection.localDescription }.
+
+Listen for call:webrtc:offer on the receiver side. Create or reuse RTCPeerConnection, add local audio tracks, set remote description with the offer, create answer, set local description, then emit call:webrtc:answer with { conversationId, callId, answer: peerConnection.localDescription }.
+
+Listen for call:webrtc:answer on the caller side. Set remote description with the answer.
+
+Handle ICE candidates on both sides. When peerConnection.onicecandidate fires and candidate exists, emit call:webrtc:ice-candidate with { conversationId, callId, candidate }. Listen for call:webrtc:ice-candidate and call peerConnection.addIceCandidate(candidate).
+
+Use this peer connection config: new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] }).
+
+Handle remote audio. In peerConnection.ontrack, create or update a remote MediaStream, attach it to an audio element with autoplay and playsInline, and play it.
+
+Add hang up button. When clicked, emit call:end with { conversationId, callId }, stop all local tracks with localStream.getTracks().forEach(track => track.stop()), stop remote tracks if any, close the peer connection with peerConnection.close(), clear callId, localStream, remoteStream, and reset call UI state.
+
+Listen for call:rejected. If received, stop local tracks, close peer connection if created, clear call state, and show "Call rejected".
+
+Listen for call:ended. If received, stop local and remote tracks, close peer connection, clear call state, and close any call modal.
+
+Listen for call:error and display error.message. On any error, clean up local stream and peer connection to avoid leaving the microphone on.
+
+Important: backend only handles signaling. Frontend is responsible for microphone permission, WebRTC peer connection, audio playback, hang up cleanup, and UI states. Do not send audio data through REST API.

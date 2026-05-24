@@ -1,8 +1,14 @@
 import { Server as HttpServer } from 'http';
+import { randomUUID } from 'crypto';
 import { Server, Socket } from 'socket.io';
 import { env } from '../config/env';
 import { supabase } from '../lib/supabase';
 import {
+  dmCallAnswerPayloadSchema,
+  dmCallControlPayloadSchema,
+  dmCallIceCandidatePayloadSchema,
+  dmCallInvitePayloadSchema,
+  dmCallOfferPayloadSchema,
   dmJoinPayloadSchema,
   dmSendMessagePayloadSchema,
 } from '../schemas/dm.schema';
@@ -12,6 +18,9 @@ import {
 } from '../schemas/guild.schema';
 import {
   assertDmParticipantByAuthId,
+  DmParticipant,
+  getDmCallContext,
+  getSingleRelation,
   sendDmMessage,
 } from '../services/dmService';
 import { getChannelWithMembership } from '../services/guild/guildShared';
@@ -65,6 +74,20 @@ const getErrorPayload = (error: unknown) => {
   };
 };
 
+const getUserRoom = (authId: string) => `user:${authId}`;
+
+const formatCallUser = (participant: DmParticipant) => {
+  const user = getSingleRelation(participant.user);
+
+  return {
+    userId: participant.user_id,
+    authId: user?.auth_id ?? null,
+    username: user?.username ?? null,
+    displayName: user?.display_name ?? null,
+    avatarUrl: user?.avatar_url ?? null,
+  };
+};
+
 export const createSocketServer = (httpServer: HttpServer) => {
   const io = new Server(httpServer, {
     cors: {
@@ -100,6 +123,8 @@ export const createSocketServer = (httpServer: HttpServer) => {
     const authenticatedSocket = socket as AuthenticatedSocket;
 
     console.log(`Socket connected: ${authenticatedSocket.id}`);
+
+    authenticatedSocket.join(getUserRoom(authenticatedSocket.data.authId));
 
     authenticatedSocket.emit('connection:ready', {
       socketId: authenticatedSocket.id,
@@ -145,6 +170,218 @@ export const createSocketServer = (httpServer: HttpServer) => {
         io.to(`dm:${conversationId}`).emit('dm:message:new', message);
       } catch (error) {
         authenticatedSocket.emit('dm:error', getErrorPayload(error));
+      }
+    });
+
+    authenticatedSocket.on('call:invite', async (payload) => {
+      try {
+        const { conversationId } = dmCallInvitePayloadSchema.parse(payload);
+        const callId = randomUUID();
+        const callContext = await getDmCallContext(
+          authenticatedSocket.data.authId,
+          conversationId,
+        );
+        const callerParticipant = callContext.participants.find(
+          (participant) => participant.user_id === callContext.currentUser.id,
+        );
+        const callPayload = {
+          callId,
+          conversationId,
+          callType: 'voice',
+          caller: callerParticipant
+            ? formatCallUser(callerParticipant)
+            : {
+                userId: callContext.currentUser.id,
+                authId: callContext.currentUser.auth_id,
+                username: callContext.currentUser.username,
+                displayName: callContext.currentUser.display_name ?? null,
+                avatarUrl: callContext.currentUser.avatar_url ?? null,
+              },
+          createdAt: new Date().toISOString(),
+        };
+
+        authenticatedSocket.emit('call:invited', callPayload);
+
+        for (const participant of callContext.recipientParticipants) {
+          const user = getSingleRelation(participant.user);
+
+          if (user?.auth_id) {
+            io.to(getUserRoom(user.auth_id)).emit('call:incoming', callPayload);
+          }
+        }
+      } catch (error) {
+        authenticatedSocket.emit('call:error', getErrorPayload(error));
+      }
+    });
+
+    authenticatedSocket.on('call:accept', async (payload) => {
+      try {
+        const { conversationId, callId } =
+          dmCallControlPayloadSchema.parse(payload);
+        const callContext = await getDmCallContext(
+          authenticatedSocket.data.authId,
+          conversationId,
+        );
+        const acceptorParticipant = callContext.participants.find(
+          (participant) => participant.user_id === callContext.currentUser.id,
+        );
+        const eventPayload = {
+          callId,
+          conversationId,
+          acceptedBy: acceptorParticipant
+            ? formatCallUser(acceptorParticipant)
+            : null,
+          acceptedAt: new Date().toISOString(),
+        };
+
+        for (const participant of callContext.recipientParticipants) {
+          const user = getSingleRelation(participant.user);
+
+          if (user?.auth_id) {
+            io.to(getUserRoom(user.auth_id)).emit('call:accepted', eventPayload);
+          }
+        }
+      } catch (error) {
+        authenticatedSocket.emit('call:error', getErrorPayload(error));
+      }
+    });
+
+    authenticatedSocket.on('call:reject', async (payload) => {
+      try {
+        const { conversationId, callId } =
+          dmCallControlPayloadSchema.parse(payload);
+        const callContext = await getDmCallContext(
+          authenticatedSocket.data.authId,
+          conversationId,
+        );
+        const eventPayload = {
+          callId,
+          conversationId,
+          rejectedAt: new Date().toISOString(),
+        };
+
+        for (const participant of callContext.recipientParticipants) {
+          const user = getSingleRelation(participant.user);
+
+          if (user?.auth_id) {
+            io.to(getUserRoom(user.auth_id)).emit('call:rejected', eventPayload);
+          }
+        }
+      } catch (error) {
+        authenticatedSocket.emit('call:error', getErrorPayload(error));
+      }
+    });
+
+    authenticatedSocket.on('call:end', async (payload) => {
+      try {
+        const { conversationId, callId } =
+          dmCallControlPayloadSchema.parse(payload);
+        const callContext = await getDmCallContext(
+          authenticatedSocket.data.authId,
+          conversationId,
+        );
+        const eventPayload = {
+          callId,
+          conversationId,
+          endedAt: new Date().toISOString(),
+        };
+
+        for (const participant of callContext.recipientParticipants) {
+          const user = getSingleRelation(participant.user);
+
+          if (user?.auth_id) {
+            io.to(getUserRoom(user.auth_id)).emit('call:ended', eventPayload);
+          }
+        }
+      } catch (error) {
+        authenticatedSocket.emit('call:error', getErrorPayload(error));
+      }
+    });
+
+    authenticatedSocket.on('call:webrtc:offer', async (payload) => {
+      try {
+        const { conversationId, callId, offer } =
+          dmCallOfferPayloadSchema.parse(payload);
+        const callContext = await getDmCallContext(
+          authenticatedSocket.data.authId,
+          conversationId,
+        );
+        const eventPayload = {
+          callId,
+          conversationId,
+          offer,
+        };
+
+        for (const participant of callContext.recipientParticipants) {
+          const user = getSingleRelation(participant.user);
+
+          if (user?.auth_id) {
+            io.to(getUserRoom(user.auth_id)).emit(
+              'call:webrtc:offer',
+              eventPayload,
+            );
+          }
+        }
+      } catch (error) {
+        authenticatedSocket.emit('call:error', getErrorPayload(error));
+      }
+    });
+
+    authenticatedSocket.on('call:webrtc:answer', async (payload) => {
+      try {
+        const { conversationId, callId, answer } =
+          dmCallAnswerPayloadSchema.parse(payload);
+        const callContext = await getDmCallContext(
+          authenticatedSocket.data.authId,
+          conversationId,
+        );
+        const eventPayload = {
+          callId,
+          conversationId,
+          answer,
+        };
+
+        for (const participant of callContext.recipientParticipants) {
+          const user = getSingleRelation(participant.user);
+
+          if (user?.auth_id) {
+            io.to(getUserRoom(user.auth_id)).emit(
+              'call:webrtc:answer',
+              eventPayload,
+            );
+          }
+        }
+      } catch (error) {
+        authenticatedSocket.emit('call:error', getErrorPayload(error));
+      }
+    });
+
+    authenticatedSocket.on('call:webrtc:ice-candidate', async (payload) => {
+      try {
+        const { conversationId, callId, candidate } =
+          dmCallIceCandidatePayloadSchema.parse(payload);
+        const callContext = await getDmCallContext(
+          authenticatedSocket.data.authId,
+          conversationId,
+        );
+        const eventPayload = {
+          callId,
+          conversationId,
+          candidate,
+        };
+
+        for (const participant of callContext.recipientParticipants) {
+          const user = getSingleRelation(participant.user);
+
+          if (user?.auth_id) {
+            io.to(getUserRoom(user.auth_id)).emit(
+              'call:webrtc:ice-candidate',
+              eventPayload,
+            );
+          }
+        }
+      } catch (error) {
+        authenticatedSocket.emit('call:error', getErrorPayload(error));
       }
     });
 

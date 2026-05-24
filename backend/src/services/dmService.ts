@@ -3,7 +3,7 @@ import { HttpStatus } from '../constants/httpStatus';
 import { supabase } from '../lib/supabase';
 import { AppError } from '../utils/AppError';
 
-type AppUser = {
+export type AppUser = {
   id: number;
   auth_id: string;
   email: string | null;
@@ -13,7 +13,7 @@ type AppUser = {
   status?: string | null;
 };
 
-type DmParticipant = {
+export type DmParticipant = {
   conversation_id: string;
   user_id: number;
   joined_at: string;
@@ -47,7 +47,7 @@ type GetMessagesOptions = {
   before?: string;
 };
 
-const getSingleRelation = <T>(relation?: T | T[] | null): T | null => {
+export const getSingleRelation = <T>(relation?: T | T[] | null): T | null => {
   if (!relation) {
     return null;
   }
@@ -135,6 +135,22 @@ export const assertDmParticipantByAuthId = async (
   await assertDmParticipant(conversationId, currentUser.id);
 
   return currentUser;
+};
+
+export const getDmCallContext = async (
+  authId: string,
+  conversationId: string,
+) => {
+  const currentUser = await assertDmParticipantByAuthId(authId, conversationId);
+  const participants = await getConversationParticipants([conversationId]);
+
+  return {
+    currentUser,
+    participants,
+    recipientParticipants: participants.filter(
+      (participant) => participant.user_id !== currentUser.id,
+    ),
+  };
 };
 
 const getConversationParticipants = async (conversationIds: string[]) => {
