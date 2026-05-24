@@ -20,6 +20,17 @@ type DmParticipant = {
   user?: AppUser | AppUser[] | null;
 };
 
+type DmConversationRelation = {
+  id: string;
+  updated_at: string | null;
+};
+
+type DmMembership = {
+  conversation_id: string;
+  joined_at: string;
+  conversation?: DmConversationRelation | DmConversationRelation[] | null;
+};
+
 type DmMessage = {
   id: string;
   conversation_id: string;
@@ -159,11 +170,30 @@ const getConversationParticipants = async (conversationIds: string[]) => {
   return (data ?? []) as DmParticipant[];
 };
 
+const groupParticipantsByConversation = (participants: DmParticipant[]) => {
+  const participantsByConversation = new Map<string, DmParticipant[]>();
+
+  for (const participant of participants) {
+    const conversationParticipants =
+      participantsByConversation.get(participant.conversation_id) ?? [];
+
+    conversationParticipants.push(participant);
+    participantsByConversation.set(
+      participant.conversation_id,
+      conversationParticipants,
+    );
+  }
+
+  return participantsByConversation;
+};
+
 const formatConversation = (
   conversationId: string,
   participants: DmParticipant[],
+  updatedAt?: string | null,
 ) => ({
   id: conversationId,
+  updatedAt: updatedAt ?? null,
   participants: participants.map((participant) => ({
     userId: participant.user_id,
     joinedAt: participant.joined_at,
@@ -176,27 +206,50 @@ export const getDmConversations = async (authId: string) => {
 
   const { data: memberships, error } = await supabase
     .from('dm_participants')
-    .select('conversation_id, joined_at')
-    .eq('user_id', currentUser.id)
-    .order('joined_at', { ascending: false });
+    .select(
+      `
+      conversation_id,
+      joined_at,
+      conversation:dm_conversations (
+        id,
+        updated_at
+      )
+    `,
+    )
+    .eq('user_id', currentUser.id);
 
   if (error) {
     throwSupabaseError(error.message, error);
   }
 
-  const conversationIds = (memberships ?? []).map(
-    (membership) => membership.conversation_id as string,
+  const sortedMemberships = ((memberships ?? []) as DmMembership[]).sort(
+    (first, second) => {
+      const firstConversation = getSingleRelation(first.conversation);
+      const secondConversation = getSingleRelation(second.conversation);
+      const firstUpdatedAt = firstConversation?.updated_at ?? first.joined_at;
+      const secondUpdatedAt = secondConversation?.updated_at ?? second.joined_at;
+
+      return (
+        new Date(secondUpdatedAt).getTime() -
+        new Date(firstUpdatedAt).getTime()
+      );
+    },
+  );
+  const conversationIds = sortedMemberships.map(
+    (membership) => membership.conversation_id,
   );
   const participants = await getConversationParticipants(conversationIds);
+  const participantsByConversation = groupParticipantsByConversation(participants);
 
-  return conversationIds.map((conversationId) =>
-    formatConversation(
-      conversationId,
-      participants.filter(
-        (participant) => participant.conversation_id === conversationId,
-      ),
-    ),
-  );
+  return sortedMemberships.map((membership) => {
+    const conversation = getSingleRelation(membership.conversation);
+
+    return formatConversation(
+      membership.conversation_id,
+      participantsByConversation.get(membership.conversation_id) ?? [],
+      conversation?.updated_at ?? membership.joined_at,
+    );
+  });
 };
 
 export const createOrGetDmConversation = async (
@@ -227,10 +280,11 @@ export const createOrGetDmConversation = async (
     (membership) => membership.conversation_id as string,
   );
   const candidateParticipants = await getConversationParticipants(candidateIds);
+  const candidateParticipantsByConversation =
+    groupParticipantsByConversation(candidateParticipants);
 
   const existingConversationId = candidateIds.find((conversationId) => {
-    const participantIds = candidateParticipants
-      .filter((participant) => participant.conversation_id === conversationId)
+    const participantIds = (candidateParticipantsByConversation.get(conversationId) ?? [])
       .map((participant) => participant.user_id)
       .sort((a, b) => a - b);
 
@@ -244,10 +298,7 @@ export const createOrGetDmConversation = async (
   if (existingConversationId) {
     return formatConversation(
       existingConversationId,
-      candidateParticipants.filter(
-        (participant) =>
-          participant.conversation_id === existingConversationId,
-      ),
+      candidateParticipantsByConversation.get(existingConversationId) ?? [],
     );
   }
 

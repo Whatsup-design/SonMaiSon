@@ -7,10 +7,17 @@ import {
   dmSendMessagePayloadSchema,
 } from '../schemas/dm.schema';
 import {
+  channelJoinPayloadSchema,
+  channelSendMessagePayloadSchema,
+} from '../schemas/guild.schema';
+import {
   assertDmParticipantByAuthId,
   sendDmMessage,
 } from '../services/dmService';
+import { getChannelWithMembership } from '../services/guild/guildShared';
+import { sendChannelMessage } from '../services/guild/sendChannelMessage';
 import { AppError } from '../utils/AppError';
+import { assertSocketMessageRateLimit } from '../utils/socketMessageRateLimit';
 
 type AuthenticatedSocket = Socket & {
   data: {
@@ -126,6 +133,9 @@ export const createSocketServer = (httpServer: HttpServer) => {
       try {
         const { conversationId, content } =
           dmSendMessagePayloadSchema.parse(payload);
+
+        assertSocketMessageRateLimit(authenticatedSocket.data.authId, 'dm');
+
         const message = await sendDmMessage(
           authenticatedSocket.data.authId,
           conversationId,
@@ -135,6 +145,46 @@ export const createSocketServer = (httpServer: HttpServer) => {
         io.to(`dm:${conversationId}`).emit('dm:message:new', message);
       } catch (error) {
         authenticatedSocket.emit('dm:error', getErrorPayload(error));
+      }
+    });
+
+    authenticatedSocket.on('channel:join', async (payload) => {
+      try {
+        const { channelId } = channelJoinPayloadSchema.parse(payload);
+
+        await getChannelWithMembership(
+          authenticatedSocket.data.authId,
+          channelId,
+        );
+
+        await authenticatedSocket.join(`channel:${channelId}`);
+        authenticatedSocket.emit('channel:joined', {
+          channelId,
+        });
+      } catch (error) {
+        authenticatedSocket.emit('channel:error', getErrorPayload(error));
+      }
+    });
+
+    authenticatedSocket.on('channel:message:send', async (payload) => {
+      try {
+        const { channelId, content } =
+          channelSendMessagePayloadSchema.parse(payload);
+
+        assertSocketMessageRateLimit(
+          authenticatedSocket.data.authId,
+          'channel',
+        );
+
+        const message = await sendChannelMessage(
+          authenticatedSocket.data.authId,
+          channelId,
+          content,
+        );
+
+        io.to(`channel:${channelId}`).emit('channel:message:new', message);
+      } catch (error) {
+        authenticatedSocket.emit('channel:error', getErrorPayload(error));
       }
     });
 

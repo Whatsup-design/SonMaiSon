@@ -8,7 +8,9 @@ import { notFoundHandler } from './middleware/notFoundHandler';
 import { createSocketServer } from './realtime/socket';
 import { router } from './routes';
 import authRoutes from './routes/auth';
+import channelRoutes from './routes/channel';
 import dmRoutes from './routes/dm';
+import guildRoutes from './routes/guild';
 
 dotenv.config();
 
@@ -34,6 +36,8 @@ app.use('/', router);
 
 app.use('/auth', authRoutes);
 app.use('/dm', dmRoutes);
+app.use('/guilds', guildRoutes);
+app.use('/channels', channelRoutes);
 // app.use('/user', authMiddleware, userRoutes);
 
 app.use(notFoundHandler);
